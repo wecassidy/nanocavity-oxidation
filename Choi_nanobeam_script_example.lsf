@@ -51,6 +51,8 @@ hole_period=510e-9;
 
 #radius of the holes
 hole_radius=0.3437*hole_period; 
+ring_thickness = 0.1 *hole_radius;
+ring_material = "SiO2 (Glass) - Palik";
 
 #number of tapered holes, counted from the center
 taper_number=5;
@@ -123,7 +125,7 @@ alpha=0.4;   #Visibility of BOX and cladding
 
 
 #Values for the FDTD
-mesh_accuracy = 8;      #Meshaccuracy settings for the FDTD
+mesh_accuracy = 3;      #Meshaccuracy settings for the FDTD
 layer_count = 16;   #Number of PML layers, standard is 8, higher is better but takes longer
 simulation_time = 1.5e-12;
 fdtd_size_x = mirror_distance+2*hole_number*hole_period+hole_radius*2;     #Size of the FDTD-region in x
@@ -657,6 +659,9 @@ geometry_setup='
     adduserprop("hole_period",2,hole_period);
     adduserprop("hole_radius",2,hole_radius);
     
+    adduserprop("ring_thickness", 2, ring_thickness);
+    adduserprop("ring_material", 5, ring_material);
+    
     adduserprop("taper_number",0,taper_number);
     adduserprop("radius_taper_strength",0,radius_taper_strength);
     adduserprop("period_taper_strength",0,period_taper_strength);
@@ -822,6 +827,20 @@ cavity_setup='
         set("material",etch_mat);
         set("override mesh order from material database",1);
         set("mesh order",1); 
+        
+        addring;
+        set("name", "ring_"+num2str(holes(i, 1)));
+        set("x", holes(i, 2));
+        set("y", holes(i, 3));
+        set("z", 0);
+        set("z span", wg_height);
+        set("inner radius", holes(i, 4) - ring_thickness);
+        set("outer radius", holes(i, 4));
+        set("theta start", 0);
+        set("theta stop", 360);
+        set("material", ring_material);
+        set("override mesh order from material database", 1);
+        set("mesh order", 2);
     }
 ';
 
@@ -996,6 +1015,8 @@ adduserprop("slot_width",2,slot_width);
 adduserprop("hole_number",0,hole_number);
 adduserprop("hole_period",2,hole_period);
 adduserprop("hole_radius",2,hole_radius);
+adduserprop("ring_thickness", 2, ring_thickness);
+adduserprop("ring_material", 5, ring_material);
 adduserprop("taper_number",0,taper_number);
 adduserprop("radius_taper_strength",0,radius_taper_strength);
 adduserprop("period_taper_strength",0,period_taper_strength);
@@ -1095,6 +1116,8 @@ set("Setup Script",'
         adduserprop("hole_number",0,hole_number);
         adduserprop("hole_period",2,hole_period);
         adduserprop("hole_radius",2,hole_radius);
+        adduserprop("ring_thickness", 2, ring_thickness);
+        adduserprop("ring_material", 5, ring_material);
         adduserprop("taper_number",0,taper_number);
         adduserprop("radius_taper_strength",0,radius_taper_strength);
         adduserprop("period_taper_strength",0,period_taper_strength);
