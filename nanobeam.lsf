@@ -17,7 +17,7 @@ oxide_thickness = 10e-9;
 oxide_length = 10e-6;
 oxide_material = "SiO2 (Glass) - Palik";
 
-name = "nanobeam_" + num2str(oxide_thickness / 1e-9) + "nm";  #name for saving
+name = "sims/nanobeam_" + num2str(oxide_thickness / 1e-9) + "nm";  #name for saving
 
 #random seed for all random generators (5 chars)
 random_seed=123456;
