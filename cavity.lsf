@@ -1,0 +1,141 @@
+#draw the slot connecting the center holes if slot_width is >0
+if(slot_width>0){
+    #Draw center slot with nanobeam
+    addrect;
+    set("name","slot_right");
+    set("x min",x_pos+bridge_width/2);
+    set("x max",mirror_distance/2+radius_taper_strength*hole_radius);
+    #set("x max",mirror_distance/2);
+    set("y",y_pos);
+    set("y span",slot_width);
+    set("z",0);
+    set("z span",wg_height);
+    set("material",etch_mat);
+    set("override mesh order from material database",1);
+    set("mesh order",1);
+
+    addrect;
+    set("name","slot_left");
+    set("x min",-(mirror_distance/2+radius_taper_strength*hole_radius));
+    #set("x min",-(mirror_distance/2));
+    set("x max",x_pos-bridge_width/2);
+    set("y",y_pos);
+    set("y span",slot_width);
+    set("z",0);
+    set("z span",wg_height);
+    set("material",etch_mat);
+    set("override mesh order from material database",1);
+    set("mesh order",1);
+}
+
+#handle taper case
+#construct hole (taper) matrix
+#1. collum is hole number, 2. is x, 3. is y, 4. is radius
+#matrtix is twice as long (for negative and positive side)
+holes=matrix(2*hole_number,4);
+
+#same matrix setup, but 4. collum is radius change (not implemented yet)
+taper_matrix=matrix(hole_number,4);
+
+#increase taper_number by 1 due to array setup
+#(last entry is a 1 and should not be counted)
+taper_number=taper_number+1;
+
+if(taper_number>1){
+    radius_taper=linspace(radius_taper_strength,1,taper_number);
+    period_taper=linspace(period_taper_strength,1,taper_number);
+    print(period_taper);
+}
+
+for(i=1;i<=hole_number;i=i+1){
+    #enumerate holes
+    taper_matrix(i,1)=i;
+    holes(i,1)=i;
+
+    #fills the x position
+    if(i>1){
+        if(i<=taper_number){
+            holes(i,2)=holes(i-1,2)+period_taper(i-1)*hole_period;
+            print(period_taper(i-1));
+        }
+        else{
+            holes(i,2)=holes(i-1,2)+hole_period;
+        }
+    }
+    else{
+        holes(i,2)=x_pos+mirror_distance/2+radius_taper(i)*hole_radius;
+        #holes(i,2)=x_pos+mirror_distance/2;
+    }
+
+    #fills the y position
+    holes(i,3)=y_pos+taper_matrix(i,3);
+
+    #fill the y shifts
+    #To do
+
+    #fill the radius shifts
+    if(i<=taper_number){
+        taper_matrix(i,4)=radius_taper(i);
+    }
+    else{
+        taper_matrix(i,4)=1;
+    }
+
+    #fills the radius
+    holes(i,4)=hole_radius*taper_matrix(i,4);
+}
+
+#left half of the cavity
+for(i=hole_number+1;i<=2*hole_number;i=i+1){
+    j=i-hole_number;
+    #enumerates all holes on negative side
+    holes(i,1)=i;
+
+    #fills the x position
+    if(j>1){
+        if(j<=taper_number){
+            holes(i,2)=holes(i-1,2)-period_taper(j-1)*hole_period;
+        }
+        else{
+            holes(i,2)=holes(i-1,2)-hole_period;
+        }
+    }
+    else{
+        holes(i,2)=x_pos-(mirror_distance/2+radius_taper(j)*hole_radius);
+        #holes(i,2)=x_pos-(mirror_distance/2);
+    }
+
+    #fills the y position
+    holes(i,3)=y_pos+taper_matrix(j,3);
+
+    #fills the radius with size from taper_matrix
+    holes(i,4)=hole_radius*taper_matrix(j,4);
+}
+
+#add holes based on hole matrix
+for(i=1;i<=2*hole_number;i=i+1){
+    addcircle;
+    set("name","hole_"+num2str(holes(i,1)));
+    set("x",holes(i,2));
+    set("y",holes(i,3));
+    set("z",0);
+    set("z span",wg_height);
+    set("radius",holes(i,4) - ring_thickness);
+    set("material",etch_mat);
+    set("override mesh order from material database",1);
+    set("mesh order",1);
+
+    addring;
+    set("name", "ring_"+num2str(holes(i, 1)));
+    set("x", holes(i, 2));
+    set("y", holes(i, 3));
+    set("z", 0);
+    set("z span", wg_height);
+    set("inner radius", holes(i, 4) - ring_thickness);
+    set("outer radius", holes(i, 4));
+    set("theta start", 0);
+    set("theta stop", 360);
+    set("material", ring_material);
+    set("override mesh order from material database", 1);
+    set("mesh order", 1);
+}

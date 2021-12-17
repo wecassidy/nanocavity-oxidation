@@ -1,0 +1,94 @@
+deleteall;
+#Add the waveguide
+addwaveguide;
+    poles=[-(fdtd_size_x/2+5e-6),0;fdtd_size_x/2+5e-6,0];
+    set("x",origin_x);
+    set("y",origin_y);
+    set("base width",wg_width);
+    set("poles",poles);
+    set("base height",wg_height);
+    set("name","wave_guide");
+    set("material",wg_mat);
+    set("base angle",wg_base_angle);
+    set("override mesh order from material database",1);
+    set("mesh order",2);
+
+#add the cavity
+#Inputs:
+    #x_pos: x Position of the cavity center
+    #y_pos: y Position of the cavity center
+    #orientation: Orientation of the cavity, x: along x, y: along y
+
+    #wg_height: height of the etched silicon
+    #etch_mat: material inside the etched regions
+
+    #mirror_distance: distance between the center holes
+    #slot_width: width of the slot
+
+    #hole_number: number of untapered holes
+    #hole_periode: periode of the holes
+    #hole_radius: radius of the untapered holes
+
+    #taper_number: number of tapered holes, linear increase
+    #radius_taper_strenght: 0.1 -> first hole is 0.1*r, linear to 1
+
+    #bridge_width: width of the nanobeam in the slot
+
+#Create waveguide cavity as substructure
+addstructuregroup;
+set("name","slot_beam_cavity");
+select("slot_beam_cavity");
+
+#userprops are necessary to use the variables within the construction script
+adduserprop("x_pos",2,x_pos);
+adduserprop("y_pos",2,y_pos);
+
+adduserprop("wg_height",2,wg_height);
+adduserprop("etch_mat",5,etch_mat);
+
+adduserprop("mirror_distance",2,mirror_distance);
+adduserprop("slot_width",2,slot_width);
+
+adduserprop("hole_number",0,hole_number);
+adduserprop("hole_period",2,hole_period);
+adduserprop("hole_radius",2,hole_radius);
+
+adduserprop("ring_thickness", 2, ring_thickness);
+adduserprop("ring_material", 5, ring_material);
+
+adduserprop("taper_number",0,taper_number);
+adduserprop("radius_taper_strength",0,radius_taper_strength);
+adduserprop("period_taper_strength",0,period_taper_strength);
+
+adduserprop("bridge_width",2,bridge_width);
+
+set("construction group",1);
+set("script",cavity_setup);
+
+#add cladding
+addrect;
+    set("name","cladding");
+    set("material",cladding_mat);
+    set("z min",origin_z-wg_height/2);
+    set("z max",fdtd_size_z/2+5e-7);
+    set("x",origin_x);
+    set("x span",fdtd_size_x+5e-6);
+    set("y",origin_y);
+    set("y span",fdtd_size_y+5e-6);
+    set("override mesh order from material database",1);
+    set("mesh order",3);
+    set("alpha",alpha);
+
+#add BOX layer
+addrect;
+    set("name","BOX");
+    set("material",box_mat);
+    set("z max",origin_z-wg_height/2);
+    set("z min",-(fdtd_size_z/2+5e-7));
+    set("x",origin_x);
+    set("x span",fdtd_size_x+5e-6);
+    set("y",origin_y);
+    set("y span",fdtd_size_y+5e-6);
+    set("override mesh order from material database",1);
+    set("mesh order",3);
+    set("alpha",alpha);
