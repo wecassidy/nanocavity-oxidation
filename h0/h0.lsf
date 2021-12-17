@@ -1,0 +1,1853 @@
+######################################################################################
+#Script to evaluate H0 cavities
+
+#Written by Joshua Fabian, jfabian@ece.ubc.ca , 2021
+######################################################################################
+
+#In order to change properties of the model, use the global model user properties
+
+newproject;
+deleteall;
+clear;
+
+#####################################################################################
+#Declear variables and there inital values in SI units
+
+name = "Joshua_24__H0_cavity_simulation_V23";  #name for saving
+
+#Simulation type: 1 for Q-factor, 0 for pulse
+sim_type=1;
+
+#random seed for all random generators (5 chars)
+random_seed=123456;
+
+#Global settings
+gl_center_wavelength = 1.55e-6; #Global center wavelength
+gl_wavelength_span = 0.8e-6;    #Global wavelength span
+
+#values for optimization
+max_generations=20;
+generation_size=30;
+
+
+#values for H0 cavity
+#origin of the cavity
+x_pos=0e-9;
+y_pos=0e-9;
+
+# Names based on Minkov et al 2015 "Automated optimization of photonic crystal slab cavities"
+
+#center to center distance of the holes
+hole_period=0.430e-6;
+
+#Hole shifts for air cladding from Minkov paper
+#S1x = 0.21*hole_period;
+#S2x = 0.103*hole_period;
+#S3x = 0.123*hole_period;
+#S4x = 0.004*hole_period;
+#S5x = 0.194*hole_period;
+#S1y = -0.017*hole_period;
+#S2y = 0.067*hole_period;
+
+#Hole shifts based on simulations for cladding
+S1x = 85e-9;    #Based on V15
+S2x = 32e-9;    #Based on V15
+S3x = 60e-9;    #Based on V17
+S4x = 100e-9;    #Based on V17
+S5x = 35e-9;    #Based on V20 (exact value doesnt seem to matter that much)
+S1y = 15e-9;    #Based on V18
+S2y = -134e-9;   #Based on V19
+S1_1x=0e-9;
+S1_1y=0e-9;
+
+#number of holes at the waveguide position
+hole_number_wg=10;
+
+#number of holes in x/y direction
+hole_number_x=20;
+hole_number_y=25;
+
+#radius of the holes
+hole_radius=0.120e-6;
+
+#material of the cavity
+etch_mat="SiO2 (Glass) - Palik";
+
+#width of the slot and bridge
+slot_width=0e-9;
+bridge_width=0e-9;
+
+#additional mesh for accuracy over the slot region
+slot_mesh=false;
+slot_mesh_dy=8e-9:
+
+#additional mesh for accuracy over bridge
+bridge_mesh=false;
+bridge_mesh_dx=8e-9;
+
+#source settings
+source_type=1;  #0 for electrical dipole, 1 for magnetic
+source_number=4;    #number of dipol sources
+source_window_x=200e-9; #size of the area with sources in x
+source_window_y=200e-9; #size of the area with sources in y
+source_window_z=50e-9;  #size of the area with sources in z
+
+#values for the analysis script
+x_span_analysis=0.15e-6; #size of the analysis region in x
+y_span_analysis=0.02e-6; #size of the analysis region in y
+z_span_analysis=0;  #size of the analysis region in z
+
+n_monitor_x=2;  #number of time monitors in x 
+n_monitor_y=2;  #number of time monitors in y
+n_monitor_z=1;  #number of time monitors in z
+
+number_resonances=2;    #number of resonances to search for
+make_plots=0;   #1 for plots, 0 for no plots of spectra, signal,...
+
+apo_center=200e-15;    #Apodization center
+apo_width_time=50e-15; #Apodization time
+
+#calculation type for the mode volume
+calc_type=2; #for explanation of settings use link
+#https://support.lumerical.com/hc/en-us/articles/
+#360034395374-Calculating-the-modal-volume-of-a-cavity-mode
+
+#origin for rest of simulation
+origin_x=0;
+origin_y=0;
+origin_z=0;
+
+#Values for the waveguide
+wg_width=500e-9;    #Width of the waveguide
+wg_height = 220e-9;   #Height of the waveguide
+wg_mat = "Si (Silicon) - Palik";  #Material of the waveguide
+wg_base_angle = 90;   #Sidewall angle of the waveguides
+
+cladding_mat = "SiO2 (Glass) - Palik";    #Cladding Material
+box_mat = "SiO2 (Glass) - Palik";    #BOX Material
+
+alpha=0.4;   #Visibility of BOX and cladding
+
+
+#Values for the FDTD
+mesh_accuracy = 3;      #Meshaccuracy settings for the FDTD
+layer_count = 16;   #Number of PML layers, standard is 8, higher is better but takes longer
+simulation_time = 1.5e-12;
+
+sim_size_self=true;    #If true, use the size specifed below, if false use size based on hole number
+sim_size_x = 15e-6;     #Size of the simulation region in x
+sim_size_y = 15e-6;     #Size of the simulation region in y
+sim_size_z = 3e-6;     #Size of the simulation region in z
+
+x_symmetry=2;   #0 no symmetry, 1 symmetric, 2 anti-symmetric
+y_symmetry=2;   #0 no symmetry, 1 symmetric, 2 anti-symmetric
+z_symmetry=1;   #0 no symmetry, 1 symmetric, 2 anti-symmetric
+
+#Variables for the frequency analysis
+monitor_number=10;
+x_span_freq=100e-9;
+y_span_freq=100e-9;
+z_span_freq=50e-9;
+
+
+#Variables for the field profile monitors
+resonances=matrix(number_resonances,1);
+resonances(1)=165.5e12;
+
+#Values for save
+
+name_dat = name+".dat";   
+name_fsp = name+".fsp"; 
+
+
+######################################################################################################
+#Define all the setup scripts to avoid syntax errors due to limit of string declaration
+#(Lumerical only allows ' and " to declare strings and has no full hierachy -> many errors)
+
+source_setup= '
+    deleteall;
+    randreset(random_seed); #set random seed
+    if(source_0_elec_1_mag==0){
+        dipole_type="electric dipole";
+    }
+    else{
+        dipole_type="magnetic dipole";
+    }
+    for(i=1;i<=source_number;i=i+1){
+        adddipole;
+        set("name","source_"+num2str(i));
+        set("dipole type",dipole_type);
+        set("x",origin_x+rand*source_window_x);
+        set("y",origin_y+rand*source_window_y);
+        set("z",origin_z+rand*source_window_z);
+        set("override global source settings",0);
+    }
+';
+        
+mode_profile_setup='
+    deleteall;
+    for(i=1;i<=number_resonances;i=i+1){
+        addprofile;
+        set("name","profile_"+num2str(i));
+        
+        set("monitor type","2D Z-normal");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",origin_z);
+        set("x span",sim_size_x);
+        set("y span",sim_size_y);
+        
+        set("output Px",1);
+        set("output Py",1);
+        set("output Pz",1);
+        set("output power",0);
+        
+        set("override global monitor settings",1);
+        set("use source limits",0);
+        set("frequency span",0);
+        set("frequency points",1);
+        if(sim_type==1){
+            set("apodization","start");
+            set("apodization center",apo_center);
+            set("apodization time width",apo_width_time);
+        }
+        try{
+            eval("f=f_mode_"+num2str(i)+";");
+            set("frequency center",f);
+        }catch(errMsg);
+        if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+            print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+        }
+    }
+';
+
+mode_analysis='
+    basename = "profile_";
+    x = getdata(basename+"1","x");
+    y = getdata(basename+"1","y");
+    
+    f0 = matrix(number_resonances);
+    E2 = matrix(length(x),length(y),number_resonances);
+    
+    for(i=1:number_resonances) {
+        mname = basename+num2str(i);
+        E2(1:length(x),1:length(y),i) = getelectric(mname);
+        f0(i) = getdata(mname,"f");
+    }  
+';
+    
+resonance_setup='
+    deleteall;        
+    
+    # Set the random number generator seed.  Change this values
+    # to get different random orientation of objects
+    randreset(random_seed);
+    
+    # add time monitors with random position
+    for(i=1:N) {  
+    addtime;
+    set("name","t_freq_"+num2str(i));
+    set("x",origin_x+rand*x_span_freq);
+    set("y",origin_y+rand*y_span_freq);
+    set("z",origin_z+rand*z_span_freq);
+    }
+';
+
+resonance_analysis='
+    ################################################
+    # Description: resonance finder
+    #
+    # Calculates the spectrum of resonances of |E|^2
+    # and |H|^2. Plots the results, and outputs
+    # a vector of wavelength (lambda) and
+    # frequency (f) of resonant peaks
+    #
+    # Copyright 2010, Lumerical Solutions, Inc.
+    ################################################
+    
+    #################################################
+    # input parameters: 
+    #    number_resonances - number of resonances to look for
+    
+    frequency_points = 2^12; # the number of points of resolution to use in the frequency domain.
+    
+    #################################################
+    # get some monitor data from first monitor 
+    #################################################
+    mname = "t_freq_1"; # monitor name
+    component = "Hz"; # field component
+    t = getdata(mname,"t");
+    field0_t = pinch(getdata(mname,component));
+    
+    ############################################################
+    # find range of frequencies where we have some source power
+    # and restrict analysis to that range
+    ############################################################
+    w = fftw(t,1);
+    sn2 = abs(sourcenorm(w/(2*pi)))^2;
+    max_sn2 = max(sn2);
+    p1 = 1;
+    for(p1=1; sn2(p1) < 1e-2*max_sn2; p1=p1+1) { 1; }
+    for(p2=p1; sn2(p2) < 0.9*max_sn2; p2=p2+1) { 1; }
+    for(p2=p2; (sn2(p2) > 1e-2*max_sn2) and (p2 < length(sn2)-1); p2=p2+1) { 1; }
+    w = linspace(w(p1),w(p2),frequency_points);
+    f_res = w/(2*pi);
+    lambda = c/f_res;
+    
+    #################################################
+    # do fft to frequency domain for all monitors
+    #################################################
+    
+    #set the time apodization settings as a fraction of total simulation time
+    fractional_time_width = 1/6;
+    fractional_time_center = 1/2;
+    apodize = exp( - 0.5*(t-max(t)*fractional_time_center)^2/(fractional_time_width*max(t))^2);
+    
+    spectrum_res = 0;
+    for(i=1:N) {
+        mname = "t_freq_" + num2str(i);
+        for(j=1:3) {
+        if(almostequal(j,1)) { component = "Ex"; }
+        if(almostequal(j,2)) { component = "Ey"; }
+        if(almostequal(j,3)) { component = "Ez"; }
+        if(almostequal(j,4)) { component = "Hx"; }
+        if(almostequal(j,5)) { component = "Hy"; }
+        if(almostequal(j,6)) { component = "Hz"; }
+        if(j > 3.5) { extra_factor = sqrt( mu0/eps0); }
+        else { extra_factor = 1; }
+        if(havedata(mname,component)) {
+            spectrum_res =   spectrum_res + 
+                    abs( extra_factor*czt(apodize*pinch(getdata(mname,component)),t,w) )^2;
+        }
+    }  
+    }
+    
+    spectrum_res = spectrum_res / abs(sourcenorm(f_res))^2;
+    plot(lambda*1e6,log10(spectrum_res),"wavelength (microns)","spectrum, logscale (a.u.)");
+    plot(f_res*1e-12,log10(spectrum_res),"frequency (THz)","spectrum, logscale (a.u.)");
+    
+    #################################################
+    # find resonant peaks
+    #################################################
+    p = findpeaks(spectrum_res,number_resonances);
+    lambda0 = lambda(p);
+    f0 = f_res(p);
+    
+    #################################################
+    # output results
+    #################################################
+    for(i=1:length(lambda0)) {
+    print("Resonances " + num2str(i) + ":");
+    print("  wavelength = " + num2str(lambda0(i)*1e9) + " nm");
+    print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
+    }
+';
+
+q_setup='
+    ##############################################
+    # Q analysis
+    # This script sets up the Q analysis time monitors.
+    #
+    # Input properties
+    # x,y,z span: object span
+    # nx,ny,nz: number of positions along each axis to place monitors
+    #
+    # Tags: resonator high q analysis quality factor
+    #
+    # Copyright 2012 Lumerical Solutions Inc
+    ##############################################
+    
+    deleteall;
+    # simplify variable names by removing spaces
+    x_span = %x span%;
+    y_span = %y span%;
+    z_span = %z span%;
+    
+    # error checking on the inputs
+    nx = round(nx);
+    ny = round(ny);
+    nz = round(nz);
+    
+    if( (x_span==0) | (nx < 1)) { nx = 1; }
+    if( (y_span==0) | (ny < 1)) { ny = 1; }
+    if( (z_span==0) | (nz < 1)) { nz = 1; }
+    if(nx == 1) { x_span = 0; }
+    if(ny == 1) { y_span = 0; }
+    if(nz == 1) { z_span = 0; }
+    
+    # define position vectors for monitors
+    #xpos = linspace(-0.5*x_span,0.5*x_span,nx);
+    #ypos = linspace(-0.5*y_span,0.5*y_span,ny);
+    #zpos = linspace(-0.5*z_span,0.5*z_span,nz);
+    
+    xpos = linspace(0,x_span,nx);
+    ypos = linspace(0,y_span,ny);
+    zpos = linspace(0,z_span,nz);
+    
+    # add the monitors
+    mon_counter = 0;
+    for(i=1:nx) {
+        for(j=1:ny) {
+            for(k=1:nz) {
+                mon_counter = mon_counter + 1;
+                addtime;
+                set("name","t"+num2str(mon_counter));
+                set("x",xpos(i));
+                set("y",ypos(j));
+                set("z",zpos(k));
+            }
+        }
+    }
+';
+
+q_analysis='
+    ##############################################
+    # Q analysis
+    # This script calculates the quality factor from
+    # the slope of the decaying envelope.
+    #
+    # Input properties
+    # make plots: make plots of signal, envelope, slope, spectrum
+    #             1 for yes, 0 for no
+    # number resonances: number of resonances to look for
+    #
+    # Output properties 
+    # f0: vector of resonant frequencies
+    # Q: vector of Q factors of resonances
+    # delta_Q: error in Q factor
+    #
+    # Tags: resonator high q analysis quality factor
+    #
+    # Copyright 2012 Lumerical Solutions Inc
+    ##############################################
+    
+    # simplify input variable names by removing spaces
+    number_resonances = %number resonances%;
+    make_plots = %make plots%;
+    
+    min_filter_width = 1; # min width of filter in units of resonance FWHM
+    max_filter_width = 6; # min width of filter in units of resonance FWHM
+    filter_width_test_points = 20;
+    zero_pad = 2^16; # fft zero padding
+                    # Note fft zero pad should be a power of 2, 
+                    # and larger gives more resolution in the 
+                    #frequency domain.
+    
+    for(N=0; (N+1) <= nx*ny*nz; 0) { 
+    N=N+1;} # up to the sum of # of monitors = (nx*ny*nz)
+    
+    #################################################
+    # get the monitor data for the first monitor
+    #################################################
+    t = getdata("t1","t");
+    field0_t_Ex = pinch(getdata("t1","Ex"));
+    field0_t_Ey = pinch(getdata("t1","Ey"));
+    field0_t_Ez = pinch(getdata("t1","Ez"));
+    
+    #################################################
+    # do fft to frequency domain for all monitors
+    #################################################
+    w = fftw(t,1,zero_pad);
+    field_w = matrix(length(w),6*N);
+    for(i=1:N) {
+    mname = "t" + num2str(i);
+    for(j=1:6) {
+        if(almostequal(j,1)) { component = "Ex"; }
+        if(almostequal(j,2)) { component = "Ey"; }
+        if(almostequal(j,3)) { component = "Ez"; }
+        if(almostequal(j,4)) { component = "Hx"; }
+        if(almostequal(j,5)) { component = "Hy"; }
+        if(almostequal(j,6)) { component = "Hz"; }
+        if(j > 3.5) { extra_factor = sqrt(mu0/eps0); }
+        else { extra_factor = 1; }
+        if(havedata(mname,component)) {
+        
+        field_w(1:length(w),6*(i-1)+j) = 2*extra_factor*( (1:length(w)) <= (length(w)/2+0.1)) * 
+                                        fft(pinch(getdata(mname,component)),1,zero_pad);
+        }
+    }
+    }
+    
+    
+    #################################################
+    # find resonant peaks, including all monitors
+    #################################################
+    f_spectrum = sum(abs(field_w)^2,2);
+    
+    p = findpeaks(f_spectrum,number_resonances);
+    f0 = w(p)/(2*pi);
+    
+    #################################################
+    # find quality factors
+    #################################################
+    
+    # reserve memory for results
+    peak_spectra = matrix(length(w),number_resonances);
+    peak_filters2 = matrix(length(w),number_resonances);
+    
+    # calculate slope of decay using 40-60% of time signal
+    #initialy it was 40-60%
+    tp1 = round(0.4*length(t));
+    tp2 = round(0.6*length(t));
+    t2 = t(tp1:tp2);
+    log_field_all = matrix(tp2-tp1+1,number_resonances);
+    
+    Q = matrix(number_resonances);
+    delta_Q = matrix(number_resonances)+1e300;
+    
+    # loop over each peak 
+    for(i=1:number_resonances) {
+        # find FWHM of peak
+        peak_val = f_spectrum(p(i));
+        continue_search = 1;
+        for(p1=p(i)-1; (p1>1) & continue_search ; 1) {
+            if(f_spectrum(p1)<=peak_val/2) { 
+                continue_search = 0; 
+            } else {
+                p1 = p1-1;
+            }
+        }
+        continue_search = 1;
+        for(p2=p(i)+1; (p2<length(w))& continue_search; 1) {
+            if(f_spectrum(p2)<=peak_val/2) { 
+                continue_search = 0; 
+            } else {
+                p2 = p2+1;
+            }
+        }
+        if(p1 < 1) { p1 = 1; }
+        if(p2 > length(w)) { p2 = length(w); }
+        FWHM = w(p2)-w(p1);
+    
+        for(filter_width=linspace(min_filter_width,max_filter_width,filter_width_test_points)) {
+            # calculate the filter for the peak
+            peak_filter = exp( -0.5*(w-w(p(i)))^2/(filter_width*FWHM)^2 );
+    
+            # inverse fft to get data in time domain
+            field2_t = 0;
+            for(mcount=1:6*N) { 
+                field2_t = field2_t + abs(invfft(pinch(field_w,2,mcount)*peak_filter))^2;
+            }
+            field2_t = field2_t(tp1:tp2);
+            log_field = log10(abs(field2_t));
+    
+            # calculate slope and Q from the slope of the decay
+            # estimate error from the slope
+            slope = (log_field(2:length(t2))-log_field(1:length(t2)-1))/
+                (t(2:length(t2))-t(1:length(t2)-1));
+            slope_mean = sum(slope)/length(slope);
+            slope_delta = sqrt( sum((slope-slope_mean)^2)/length(slope) );
+            Q_test = -w(p(i))*log10(exp(1))/(slope_mean);
+            delta_Q_test = abs(slope_delta/slope_mean*Q_test);
+            if(delta_Q_test < delta_Q(i)) {
+                Q(i) = Q_test;
+                delta_Q(i) = delta_Q_test;
+    
+                # collect data for final plot
+                peak_spectra(1:length(w),i) = f_spectrum * peak_filter^2;
+                peak_filters2(1:length(w),i) = peak_filter^2;
+                log_field_all(1:length(t2),i) = log_field;
+    
+            }
+        }
+        # output summary of peak results to script window
+        ?"Resonance " + num2str(i) + ":";
+        ?"    frequency = " + num2str(w(p(i))/(2*pi)*1e-12) + "THz, or "+num2str(2*pi*c/w(p(i))*1e9)+" nm";
+        ?"    Q = " + num2str(Q(i)) +" +/- " + num2str(delta_Q(i));
+    }
+    
+    Q_matrix=Q;
+    
+    Q = matrixdataset("Q");
+    Q.addparameter("lambda",c/f0,"f",f0);
+    Q.addattribute("Q",Q_matrix);
+    Q.addattribute("dQ",delta_Q);
+    num=find(f0,c/1.55e-6);
+    lam0=c/f0(num);
+    Q_max=Q_matrix(num);
+    if(c/f0(num)<1.54e-6 or c/f0>1.565e-6){
+        Q_max=Q_max*1e-5;
+    }
+    
+    spectrum = matrixdataset("spectrum");
+    spectrum.addparameter("lambda",c/(w/2/pi),"f",w/2/pi);
+    spectrum.addattribute("spectrum",f_spectrum);
+    
+    #################################################
+    # plot the results
+    #################################################
+    if (make_plots) {
+    # plot signal and envelope for first monitor 
+    field_t_Ex = invfft(pinch(field_w,2,1));
+    field_t_Ex = field_t_Ex(1:length(t));
+    field_t_Ey = invfft(pinch(field_w,2,2));
+    field_t_Ey = field_t_Ey(1:length(t));
+    field_t_Ez = invfft(pinch(field_w,2,3));
+    field_t_Ez = field_t_Ez(1:length(t));
+    plot(t*1e15,field0_t_Ex,abs(field_t_Ex),field0_t_Ey,abs(field_t_Ey),field0_t_Ez,abs(field_t_Ez),"time (fs)","field envelope");
+    legend("field (Ex)","envelope (Ex)","field (Ey)","envelope (Ey)","field (Ez)","envelope (Ez)");
+    
+    # plot the slopes of the decaying fields
+    plot(t2*1e15,log_field_all,"time (fs)","log10(|field(t)|)","Decay for each resonance");
+    
+    # plot spectra
+    p1 = find(w,0.8*min(w(p)));
+    p2 = find(w,1.2*max(w(p)));
+    f = w/(2*pi);
+    plot(f(p1:p2)*1e-12,peak_spectra(p1:p2,1:number_resonances)/max(f_spectrum)
+                        ,"frequency (THz)","Arbitrary units","Spectrum of resonances");
+    plot(f(p1:p2)*1e-12,f_spectrum(p1:p2)/max(f_spectrum),peak_filters2(p1:p2,1:number_resonances)
+                        ,"frequency (THz)","Arbitrary units","Spectrum and filters");
+    } 
+';
+
+geometry_setup='
+    deleteall;
+    #Add the waveguide
+    #addwaveguide;
+        #poles=[-(fdtd_size_x/2+5e-6),0;fdtd_size_x/2+5e-6,0];
+        #set("x",origin_x);
+        #set("y",origin_y);
+        #set("base width",wg_width);
+        #set("poles",poles);
+        #set("base height",wg_height);
+        #set("name","wave_guide");
+        #set("material",wg_mat);
+        #set("base angle",wg_base_angle);
+        #set("override mesh order from material database",1);
+        #set("mesh order",2); 
+    
+    #add the cavity
+    #Inputs:
+        #x_pos: x Position of the cavity center
+        #y_pos: y Position of the cavity center
+        #orientation: Orientation of the cavity, x: along x, y: along y 
+        
+        #wg_height: height of the etched silicon
+        #etch_mat: material inside the etched regions
+        
+        #mirror_distance: distance between the center holes
+        #slot_width: width of the slot
+        
+        #hole_number: number of untapered holes
+        #hole_periode: periode of the holes
+        #hole_radius: radius of the untapered holes
+        
+        #taper_number: number of tapered holes, linear increase
+        #radius_taper_strenght: 0.1 -> first hole is 0.1*r, linear to 1
+        
+        #bridge_width: width of the nanobeam in the slot
+        
+    #Create waveguide cavity as substructure
+    addstructuregroup;
+    set("name","H0_cavity");
+    select("H0_cavity");
+    
+    #userprops are necessary to use the variables within the construction script
+    adduserprop("x_pos",2,x_pos);
+    adduserprop("y_pos",2,y_pos);
+    
+    adduserprop("wg_height",2,wg_height);
+    adduserprop("etch_mat",5,etch_mat);
+    adduserprop("wg_mat",5,wg_mat);
+    adduserprop("slot_width",2,slot_width);
+    adduserprop("bridge_width",2,bridge_width);
+    
+    adduserprop("S1x",2,S1x);
+    adduserprop("S2x",2,S2x);
+    adduserprop("S3x",2,S3x);
+    adduserprop("S4x",2,S4x);
+    adduserprop("S5x",2,S5x);
+    
+    adduserprop("S1y",2,S1y);
+    adduserprop("S2y",2,S2y);
+    
+    adduserprop("S1_1x",2,S1_1x);
+    adduserprop("S1_1y",2,S1_1y);
+        
+    adduserprop("hole_number_x",0,hole_number_x);
+    adduserprop("hole_number_y",0,hole_number_y);
+    adduserprop("hole_number_wg",0,hole_number_wg);
+    adduserprop("hole_period",2,hole_period);
+    adduserprop("hole_radius",2,hole_radius);
+ 
+    
+    set("construction group",1);
+    set("script",cavity_setup);
+    
+    #add cladding
+    addrect;
+        set("name","cladding");
+        set("material",cladding_mat);
+        set("z min",origin_z-wg_height/2);
+        set("z max",sim_size_z/2+5e-6);
+        set("x",origin_x);
+        set("x span",sim_size_x+5e-6);
+        set("y",origin_y);
+        set("y span",sim_size_y+5e-6);
+        set("override mesh order from material database",1);
+        set("mesh order",3); 
+        set("alpha",alpha);
+    
+    #add BOX layer
+    addrect;
+        set("name","BOX");
+        set("material",box_mat);
+        set("z max",origin_z-wg_height/2);
+        set("z min",-(sim_size_z/2+5e-6));
+        set("x",origin_x);
+        set("x span",sim_size_x+5e-6);
+        set("y",origin_y);
+        set("y span",sim_size_y+5e-6);
+        set("override mesh order from material database",1);
+        set("mesh order",3); 
+        set("alpha",alpha);
+';
+
+cavity_setup='
+    
+    #construct hole matrix
+    #1. collum is hole number, 2. is x, 3. is y, 4. is radius 
+    hole_number=hole_number_y*hole_number_x;
+    holes=matrix(hole_number,4);
+    
+    shifts=[S1x,S2x,S3x,S4x,S5x];
+    
+    counter=1; 
+    for(i=1;i<=hole_number_y;i=i+1){
+        
+        for(j=1;j<=hole_number_x;j=j+1){
+            
+            #enumerate holes
+            holes(counter,1)=counter;
+        
+            #fills the x position 
+            if( (i==2) & (j==2)){
+                holes(counter,2)=x_pos+(j-1)*hole_period+S1_1x;
+            }
+            else if(mod(i,2)==0){
+                holes(counter,2)=x_pos+(j-1)*hole_period;
+            }
+            else{
+                if( (i==1) & (j<6) ){
+                    holes(counter,2)=x_pos+(0.5+j-1)*hole_period+shifts(j);
+                }
+                else{
+                    holes(counter,2)=x_pos+(0.5+j-1)*hole_period;
+                }
+            }
+            
+            #fills the y position
+            if( (j==1) & (i==2) ){
+                holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S1y;
+            }
+            else if( (j==1) & (i==4) ){
+                holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S2y;
+            }
+            else if( (j==2) & (i==2)){
+                holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S1_1y;   
+            }
+            else{
+                holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period;
+            }
+            
+            #fills the radius
+            holes(counter,4)=hole_radius;
+            
+            counter=counter+1;
+        }
+    }
+    
+    #add holes based on hole matrix in quadrant 1
+    for(i=1;i<=hole_number;i=i+1){
+        if(!((hole_number_wg<i) & (i<=hole_number_x)) ){
+            addcircle;
+            set("name","hole_q1_"+num2str(holes(i,1)));
+            set("x",holes(i,2));
+            set("y",holes(i,3)); 
+            set("z",0);
+            set("z span",wg_height);
+            set("radius",holes(i,4)); 
+            set("material",etch_mat);
+            set("override mesh order from material database",1);
+            set("mesh order",1); 
+        }
+    }
+    
+    #add holes based on hole matrix in quadrant 2
+    for(i=1;i<=hole_number;i=i+1){
+        if( (holes(i,2)!=0) & (holes(i,3)!=0) ){
+            addcircle;
+            set("name","hole_q2_"+num2str(holes(i,1)));
+            set("x",-holes(i,2));
+            set("y",holes(i,3)); 
+            set("z",0);
+            set("z span",wg_height);
+            set("radius",holes(i,4)); 
+            set("material",etch_mat);
+            set("override mesh order from material database",1);
+            set("mesh order",1); 
+        }    
+    }
+    
+    #add holes based on hole matrix in quadrant 3
+    for(i=1;i<=hole_number;i=i+1){
+        if(!((hole_number_wg<i) & (i<=hole_number_x)) ){
+            addcircle;
+            set("name","hole_q3_"+num2str(holes(i,1)));
+            set("x",-holes(i,2));
+            set("y",-holes(i,3)); 
+            set("z",0);
+            set("z span",wg_height);
+            set("radius",holes(i,4)); 
+            set("material",etch_mat);
+            set("override mesh order from material database",1);
+            set("mesh order",1); 
+        }
+    }
+    
+    #add holes based on hole matrix in quadrant 4
+    for(i=1;i<=hole_number;i=i+1){
+        if( (holes(i,2)!=0) & (holes(i,3)!=0) ){
+            addcircle;
+            set("name","hole_q4_"+num2str(holes(i,1)));
+            set("x",holes(i,2));
+            set("y",-holes(i,3)); 
+            set("z",0);
+            set("z span",wg_height);
+            set("radius",holes(i,4)); 
+            set("material",etch_mat);
+            set("override mesh order from material database",1);
+            set("mesh order",1); 
+        }
+    }
+    
+
+    #draw the slot connecting the center holes if slot_width is >0
+    if(slot_width>0){
+        #Draw center slot with nanobeam
+        addrect;
+        set("name","slot_right");
+        set("x min",bridge_width/2);
+        set("x max",holes(1,2));       
+        set("y",0);
+        set("y span",slot_width);
+        set("z",0);
+        set("z span",wg_height);
+        set("material",etch_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",1); 
+        
+        addrect;
+        set("name","slot_left");
+        set("x min",-holes(1,2));
+        set("x max",-bridge_width/2);
+        set("y",0);
+        set("y span",slot_width);
+        set("z",0);
+        set("z span",wg_height);
+        set("material",etch_mat);  
+        set("override mesh order from material database",1);
+        set("mesh order",1);    
+    }    
+    
+    addrect;
+        set("name","slab");
+        set("x",x_pos);
+        set("x span",(2*hole_number_x+1)*hole_period);
+        set("y",y_pos);
+        set("y span",(2*hole_number_y+1)*hole_period*sqrt(3)/2);
+        set("z span", wg_height);
+        set("material",wg_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",2);
+';
+
+volume_setup='
+    deleteall;
+    
+    for(i=1;i<=number_resonances;i=i+1){
+        addpower;
+            set("name","field_"+num2str(i));
+            set("monitor type","3D"); 
+            set("output power",0);
+            set("apodization","start");
+            set("apodization center",apo_center);
+            set("apodization time width",apo_width_time);
+            set("x",origin_x);
+            set("y",origin_y);
+            set("z",0);
+            set("x span",sim_size_x);
+            set("y span",sim_size_y);
+            set("z span",sim_size_z);
+            set("override global monitor settings",1);
+            set("use source limits",0);
+            set("frequency span",0);
+            set("frequency points",1);
+            try{
+                eval("f=f_mode_"+num2str(i)+";");
+                set("frequency center",f);
+            }catch(errMsg);
+            if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+                print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+            }
+        
+        addindex;
+            set("name","index_"+num2str(i));
+            set("monitor type","3D");
+            set("x",origin_x);
+            set("y",origin_y);
+            set("z",0);
+            set("x span",sim_size_x);
+            set("y span",sim_size_y);
+            set("z span",sim_size_z);
+            set("override global monitor settings",1);
+            set("use source limits",0);
+            set("frequency span",0);
+            set("frequency points",1);
+            try{
+                eval("f=f_mode_"+num2str(i)+";");
+                set("frequency center",f);
+            }catch(errMsg);
+            if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+                print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+            }
+       
+        
+        
+        
+        set("override global monitor settings",1);
+        set("use source limits",0);
+        set("frequency span",0);
+        set("frequency points",1);
+        try{
+            eval("f=f_mode_"+num2str(i)+";");
+            set("frequency center",f);
+        }catch(errMsg);
+        if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+            print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+        }
+    }
+    
+        
+';
+
+volume_analysis='    
+    ##############################################
+    # Modal volume
+    # This analysis script will calculate the modal volume of a confined
+    # mode. The user can choose between 3 simple calculation methods:
+    # 1) Volume = volume where E2 is greater than max(E2)/2
+    # 2) Volume = integral(esp*E2/max(eps*E2))
+    # 3) Volume = integral(H2)^2/integral(H4)
+    #
+    # Input properties
+    # calc type: calculation method to use 1,2, or 3
+    #
+    # Output properties 
+    # V: mode volume vs frequency
+    #
+    ##############################################
+    
+    f=matrix(number_resonances,1);
+    V=matrix(number_resonances,1);
+    
+    for(j=1:number_resonances){
+        # get position vectors from monitor
+        x=getdata("field_"+num2str(j),"x");
+        y=getdata("field_"+num2str(j),"y");
+        z=getdata("field_"+num2str(j),"z");
+        f(j)=getdata("field_"+num2str(j),"f");
+        
+        #######################################################################
+        # mode volume is defined as volume where E2 is greater than max(E2)/2
+        if (calc_type==1) {
+            E2=getelectric("field_"+num2str(j));
+            sz = size(E2);
+            
+            mode=E2;
+            for (i=1:sz(4)) {  # normalize each frequency  
+                mode(1:sz(1),1:sz(2),1:sz(3),i) = E2(1:sz(1),1:sz(2),1:sz(3),i) > max(E2(1:sz(1),1:sz(2),1:sz(3),i))/2;
+            }  
+            V(j) = integrate2(mode,1:3,x,y,z);
+        }
+        
+        #######################################################################
+        # mode volume is defined as integral(esp*E2/max(eps*E2))
+        if (calc_type==2) {
+            E2=getelectric("field_"+num2str(j));
+            n=getdata("index_"+num2str(j),"index_x");
+            eps = real(n^2);  # use real part of esp
+            sz = size(E2);
+            
+            mode = eps*E2;
+            for (i=1:sz(4)) {  # normalize each frequency  
+                mode(1:sz(1),1:sz(2),1:sz(3),i) =     mode(1:sz(1),1:sz(2),1:sz(3),i) /
+                                                max(mode(1:sz(1),1:sz(2),1:sz(3),i));
+            }
+            V(j) = integrate2(mode,1:3,x,y,z);
+        }
+        
+        #######################################################################
+        # calculate mode volume as integral(H2)^2/integral(H4)
+        # this definition is used in MODE Solutions
+        if (calc_type==3) {
+            H2=getmagnetic("field_"+num2str(j));
+            
+            mode   = H2;
+            V(i) = (integrate2(H2  ,1:3,x,y,z))^2 / 
+                        integrate2(H2^2,1:3,x,y,z);
+        }        
+        
+        #######################################################################
+        
+        print("Volume= "+num2str(V(j)*1e18)+" (um^3) at f= "+num2str(c/f(j)*1e6)+" um");
+        print("-> Volume= "+num2str(V(j)/(c/f(j))^3)+" (lambda)^3");         
+        if (make_plots) {
+            image(x*1e6,y*1e6,pinch(pinch(mode,4,1),3,find(z,0)),"x (um)","y (um)","mode");
+            image(x*1e6,z*1e6,pinch(pinch(mode,4,1),2,find(y,0)),"x (um)","z (um)","mode");
+        }
+    }
+    
+    Volume = matrixdataset("Volume");
+    Volume.addparameter("lambda",c/f,"f",f);
+    Volume.addattribute("V",V);
+    
+    if(make_plots){
+        plot(c/f*1e6,V*1e18,"wavelength (um)","volume (um^3)");
+    }
+    
+
+';
+######################################################################################################
+#set everything as setup script of the model
+
+#add all variables as userproperties for the model
+adduserprop("sim_type",0,sim_type);
+adduserprop("random_seed",0,random_seed);
+adduserprop("gl_center_wavelength",2,gl_center_wavelength);
+adduserprop("gl_wavelength_span",2,gl_wavelength_span);
+
+adduserprop("x_pos",2,x_pos);
+adduserprop("y_pos",2,y_pos);
+
+adduserprop("hole_number_x",0,hole_number_x);
+adduserprop("hole_number_y",0,hole_number_y);
+adduserprop("hole_number_wg",0,hole_number_wg);
+adduserprop("hole_period",2,hole_period);
+adduserprop("hole_radius",2,hole_radius);
+adduserprop("slot_width",2,slot_width);
+adduserprop("bridge_width",2,bridge_width);
+
+adduserprop("S1x",2,S1x);
+adduserprop("S2x",2,S2x);
+adduserprop("S3x",2,S3x);
+adduserprop("S4x",2,S4x);
+adduserprop("S5x",2,S5x);
+adduserprop("S1y",2,S1y);
+adduserprop("S2y",2,S2y);
+adduserprop("S1_1x",2,S1_1x);
+adduserprop("S1_1y",2,S1_1y);
+
+adduserprop("slot_mesh",0,slot_mesh);
+adduserprop("slot_mesh_dy",2,slot_mesh_dy);
+adduserprop("bridge_mesh",0,bridge_mesh);
+adduserprop("bridge_mesh_dx",2,bridge_mesh_dx);
+
+adduserprop("source_0_elec_1_mag",0,source_type);
+adduserprop("source_number",0,source_number);
+adduserprop("source_window_x",2,source_window_x);
+adduserprop("source_window_y",2,source_window_y);
+adduserprop("source_window_z",2,source_window_z);
+
+adduserprop("x_span_analysis",2,x_span_analysis);
+adduserprop("y_span_analysis",2,y_span_analysis);
+adduserprop("z_span_analysis",2,z_span_analysis);
+adduserprop("n_monitor_x",0,n_monitor_x);
+adduserprop("n_monitor_y",0,n_monitor_y);
+adduserprop("n_monitor_z",0,n_monitor_z);
+
+adduserprop("number_resonances",0,number_resonances);
+adduserprop("make_plots",0,make_plots);
+
+adduserprop("apo_center",3,apo_center);
+adduserprop("apo_width_time",3,apo_width_time);
+adduserprop("etch_mat",5,etch_mat);
+
+adduserprop("origin_x",2,origin_x);
+adduserprop("origin_y",2,origin_y);
+adduserprop("origin_z",2,origin_z);
+
+adduserprop("wg_width",2,wg_width);
+adduserprop("wg_height",2,wg_height);
+adduserprop("wg_mat",5,wg_mat);
+adduserprop("wg_base_angle",0,wg_base_angle);
+
+adduserprop("box_mat",5,box_mat);
+adduserprop("cladding_mat",5,cladding_mat);
+adduserprop("alpha",0,alpha);
+
+adduserprop("mesh_accuracy",0,mesh_accuracy);
+adduserprop("layer_count",0,layer_count);
+adduserprop("simulation_time",3,simulation_time);
+
+adduserprop("sim_size_x",2,sim_size_x);
+adduserprop("sim_size_y",2,sim_size_y);
+adduserprop("sim_size_z",2,sim_size_z);
+
+adduserprop("sim_size_self",0,sim_size_self);
+adduserprop("x_symmetry",0,x_symmetry);
+adduserprop("y_symmetry",0,y_symmetry);
+adduserprop("z_symmetry",0,z_symmetry);
+
+adduserprop("monitor_number",0,monitor_number);
+adduserprop("x_span_freq",2,x_span_freq);
+adduserprop("y_span_freq",2,y_span_freq);
+adduserprop("z_span_freq",2,z_span_freq);
+
+adduserprop("calc_type",0,calc_type);
+
+
+#give all scripts as strings to the model
+adduserprop("geometry_setup",1,geometry_setup);
+adduserprop("cavity_setup",1,cavity_setup);
+adduserprop("source_setup",1,source_setup);
+adduserprop("mode_profile_setup",1,mode_profile_setup);
+adduserprop("mode_analysis",1,mode_analysis);
+adduserprop("resonance_setup",1,resonance_setup);
+adduserprop("resonance_analysis",1,resonance_analysis);
+adduserprop("q_setup",1,q_setup);
+adduserprop("q_analysis",1,q_analysis);
+adduserprop("volume_setup",1,volume_setup);
+adduserprop("volume_analysis",1,volume_analysis);
+
+set("Setup Script",'
+    deleteall;
+    
+    if(!sim_size_self){
+        sim_size_x=(2*hole_number_x+1)*hole_period+1e-6;
+        sim_size_y=(2*hole_number_y+1)*hole_period*sqrt(3)/2+1e-6;
+    }
+    
+    resonances=matrix(number_resonances,1);
+    #If you increase the resonance number add frequency here
+    try{    
+        resonances(1)=c/(1552e-9);   
+        resonances(2)=0;
+        resonances(3)=0;
+        resonances(4)=0;
+    }catch(temp);
+    
+    #add strucutre group to put all geometry objects in
+    addstructuregroup;
+        set("name","geometry");
+        select("geometry");
+        adduserprop("x_pos",2,x_pos);
+        adduserprop("y_pos",2,y_pos);
+        
+        adduserprop("hole_number_x",0,hole_number_x);
+        adduserprop("hole_number_y",0,hole_number_y);
+        adduserprop("hole_number_wg",0,hole_number_wg);
+        adduserprop("hole_period",2,hole_period);
+        adduserprop("hole_radius",2,hole_radius);
+        adduserprop("slot_width",2,slot_width);
+        adduserprop("bridge_width",2,bridge_width);
+        
+        adduserprop("S1x",2,S1x);
+        adduserprop("S2x",2,S2x);
+        adduserprop("S3x",2,S3x);
+        adduserprop("S4x",2,S4x);
+        adduserprop("S5x",2,S5x);
+        adduserprop("S1y",2,S1y);
+        adduserprop("S2y",2,S2y);
+        adduserprop("S1_1x",2,S1_1x);
+        adduserprop("S1_1y",2,S1_1y);
+
+        adduserprop("etch_mat",5,etch_mat);
+        adduserprop("origin_x",2,origin_x);
+        adduserprop("origin_y",2,origin_y);
+        adduserprop("origin_z",2,origin_z);
+        
+        adduserprop("wg_width",2,wg_width);
+        adduserprop("wg_height",2,wg_height);
+        adduserprop("wg_mat",5,wg_mat);
+        adduserprop("wg_base_angle",0,wg_base_angle);
+        adduserprop("box_mat",5,box_mat);
+        adduserprop("cladding_mat",5,cladding_mat);
+        adduserprop("alpha",0,alpha);
+        adduserprop("sim_size_x",2,sim_size_x);
+        adduserprop("sim_size_y",2,sim_size_y);
+        adduserprop("sim_size_z",2,sim_size_z);
+        
+        #give all the needed scripts as strings to the model
+        adduserprop("cavity_setup",1,cavity_setup);
+
+        set("script",geometry_setup);
+    
+    #add fdtd area
+    addfdtd;
+        setnamed("FDTD","x",origin_x);
+        setnamed("FDTD","x span",sim_size_x);
+        setnamed("FDTD","y",origin_y);
+        setnamed("FDTD","y span",sim_size_y);
+        setnamed("FDTD","z",origin_z);
+        setnamed("FDTD","z span", sim_size_z);
+        setnamed("FDTD","mesh accuracy",mesh_accuracy);
+        setnamed("FDTD","simulation time",simulation_time);
+        if(sim_type==1){        
+            setnamed("FDTD","use auto shutoff",0);
+        }
+        setnamed("FDTD","allow symmetry on all boundaries",0);
+          
+        #set pml settings based on xiruos simulations      
+        setnamed("FDTD","pml profile",4);
+        setnamed("FDTD","pml layers",layer_count);
+        setnamed("FDTD","pml kappa",20);
+        setnamed("FDTD","pml sigma",0.1);
+        setnamed("FDTD","pml polynomial",3);
+        setnamed("FDTD","pml alpha",0);
+        setnamed("FDTD","pml alpha polynomial",1);
+        setnamed("FDTD","pml min layers",layer_count);
+        setnamed("FDTD","pml max layers",128);
+        
+        
+        #set symmetric boundry conditions 
+        if((x_symmetry==1) &(sim_type==1)){
+            setnamed("FDTD","x min bc","symmetric");
+        }
+        else if((x_symmetry==2) &(sim_type==1)){
+            setnamed("FDTD","x min bc","anti-symmetric");
+        }
+        
+        if(y_symmetry==1){
+            setnamed("FDTD","y min bc","symmetric");
+        }
+        else if(y_symmetry==2){
+            setnamed("FDTD","y min bc","anti-symmetric");
+        }
+        
+        if(z_symmetry==1){
+            setnamed("FDTD","z min bc","symmetric");
+        }
+        else if(z_symmetry==2){
+            setnamed("FDTD","z min bc","anti-symmetric");
+        }    
+    
+    #add slot mesh
+    if(slot_width>0 & slot_mesh){
+        addmesh;
+        set("name","slot_mesh");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",origin_z);
+        set("x span",hole_period+2*S1x );
+        set("y span",slot_width);
+        set("z span",wg_height);
+        set("override x mesh",0);
+        set("override z mesh",0);
+        set("dy",slot_mesh_dy);   
+    }
+    
+    addmesh;
+        set("name","cav_mesh");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",origin_z);
+        set("x span",8e-6);
+        set("y span",8e-6);
+        set("z span",sim_size_z);
+        set("dx",7e-9);
+        set("dz",22e-9);
+        set("dy",7e-9);
+        
+    addmesh;
+        set("name","tot_mesh");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",origin_z);
+        set("x span",sim_size_x);
+        set("y span",sim_size_y);
+        set("z span",sim_size_z);
+        set("dx",14e-9);
+        set("dz",200e-9);
+        set("dy",14e-9);
+    
+    #add beam mesh
+    if(bridge_width>0 & bridge_mesh){
+        addmesh;
+        set("name","bridge_mesh");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",origin_z);
+        set("x span", bridge_width);
+        set("y span",slot_width);
+        set("z span",wg_height);
+        set("override y mesh",0);
+        set("override z mesh",0);
+        set("dx",bridge_mesh_dx);   
+    }     
+    
+    #add field profile monitors for each resonance frequency
+    addanalysisgroup;
+        set("name","mode_profiles");
+        
+        adduserprop("number_resonances",0,number_resonances);
+        adduserprop("origin_x",2,origin_x);
+        adduserprop("origin_y",2,origin_y);
+        adduserprop("origin_z",2,origin_z);
+        adduserprop("sim_size_x",2,sim_size_x);
+        adduserprop("sim_size_y",2,sim_size_y);
+        adduserprop("apo_center",3,apo_center);
+        adduserprop("apo_width_time",3,apo_width_time);
+        adduserprop("sim_type",0,sim_type);
+        
+        for(i=1;i<=number_resonances;i=i+1){
+            adduserprop("f_mode_"+num2str(i),4,resonances(i));   
+        }
+        
+        set("Setup Script",mode_profile_setup);
+        
+        addanalysisresult("E2");
+        addanalysisresult("f0");
+        
+        set("Analysis Script",mode_analysis);
+            
+    if(sim_type==1){
+        #add source cloud
+        addanalysisgroup;
+            set("name", "source_cloud");
+            
+            adduserprop("source_0_elec_1_mag",0,source_0_elec_1_mag);
+            adduserprop("source_window_x",2,source_window_x);
+            adduserprop("source_window_y",2,source_window_y);
+            adduserprop("source_window_z",2,source_window_z);
+            adduserprop("source_number",0,source_number);
+            adduserprop("origin_z",2,origin_z);
+            adduserprop("origin_x",2,x_pos);
+            adduserprop("origin_y",2,y_pos);
+            adduserprop("random_seed",0,random_seed);
+            
+            set("Setup Script",source_setup); 
+        
+        #add resonance frequency analysis based on Lumerical example pc_3D_cavity 
+        addanalysisgroup;
+            set("name","resonance finder");
+            
+            adduserprop("x_span_freq",2,x_span_freq);
+            adduserprop("y_span_freq",2,y_span_freq);
+            adduserprop("z_span_freq",2,z_span_freq);
+            adduserprop("origin_z",2,origin_z);
+            adduserprop("origin_x",2,x_pos);
+            adduserprop("origin_y",2,y_pos);
+            adduserprop("random_seed",0,random_seed);
+            adduserprop("N",0,monitor_number);
+            
+            set("Setup Script",resonance_setup); 
+            
+            addanalysisprop("number_resonances",0,number_resonances);
+            addanalysisresult("f_res");
+            addanalysisresult("spectrum_res");
+            addanalysisresult("lambda0");
+            addanalysisresult("f0");
+            
+            set("Analysis Script",resonance_analysis);
+            
+                
+                
+        #add Q-factor analysis group based on Lumerical example quality_factor_3D
+        addanalysisgroup;
+            set("name","Qanalysis");
+            
+            adduserprop("x span",2,x_span_analysis);
+            adduserprop("y span",2,y_span_analysis);
+            adduserprop("z span",2,z_span_analysis);
+            adduserprop("nx",0,n_monitor_x);
+            adduserprop("ny",0,n_monitor_y);
+            adduserprop("nz",0,n_monitor_z);
+            
+            #set("y",y_span_analysis/2);
+            set("setup script",q_setup);
+            
+            addanalysisprop("number resonances",0,number_resonances);
+            addanalysisprop("make plots",0,make_plots);
+            addanalysisresult("Q");
+            addanalysisresult("spectrum");
+            addanalysisresult("Q_max");
+            addanalysisresult("lam0");
+            
+            set("analysis script",q_analysis);
+        
+        addanalysisgroup;
+            set("name","mode_voulme");
+            
+            adduserprop("number_resonances",0,number_resonances);
+            adduserprop("origin_x",2,origin_x);
+            adduserprop("origin_y",2,origin_y);
+            adduserprop("sim_size_x",2,sim_size_x);
+            adduserprop("sim_size_y",2,sim_size_y);
+            adduserprop("sim_size_z",2,sim_size_z);
+            adduserprop("apo_center",3,apo_center);
+            adduserprop("apo_width_time",3,apo_width_time);
+            
+            for(i=1;i<=number_resonances;i=i+1){
+                adduserprop("f_mode_"+num2str(i),4,resonances(i));   
+            }
+            
+            set("setup script",volume_setup);
+            
+            addanalysisprop("calc_type",0,calc_type);
+            addanalysisprop("make_plots",0,make_plots);
+            addanalysisresult("Volume");
+            
+            set("analysis script",volume_analysis);
+    }
+    
+    else if(sim_type==0){
+        addport;
+            set("name","input");
+            set("x",-(hole_number_wg+2)*hole_period);
+            set("y span",sqrt(3)*hole_period+2*hole_radius);
+        
+        addport;
+            set("name","output");
+            set("x",(hole_number_wg+2)*hole_period);
+            set("y span",sqrt(3)*hole_period+2*hole_radius);     
+            
+        addmovie;
+            set("x span",sim_size_x);
+            set("y span",sim_size_y);  
+    }           
+');
+
+
+if(sim_type==1){
+    # Add optimization routine
+    addsweep(1);
+        setsweep("optimization", "name", "qOptimizer");
+        setsweep("qOptimizer", "Type", "Maximize");
+        setsweep("qOptimizer", "algorithm", "Particle Swarm");
+        setsweep("qOptimizer", "maximum generations", max_generations);
+        setsweep("qOptimizer", "generation size", generation_size);
+        setsweep("qOptimizer", "tolerance", 0);
+        
+        # define the parameters
+        #hole_period, hole_radius, S1x,S2x,S3x,S4x,S5x,S1y,S2y
+        
+        para = struct;
+        para.Parameter = "::model::hole_period";
+        para.Type = "Length";
+        para.Min = 0.35e-6;
+        para.Max = 0.6e-6;
+        para.Units = "microns";
+        para.name = "hole_period";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::hole_radius";
+        para.Type = "Length";
+        para.Min = 0.1e-6;
+        para.Max = 0.25e-6;
+        para.Units = "microns";
+        para.name = "hole_radius";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S1x";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S1x";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S2x";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S2x";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S3x";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S3x";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S4x";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S4x";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S5x";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S5x";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S1y";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S1y";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        para = struct;
+        para.Parameter = "::model::S2y";
+        para.Type = "Length";
+        para.Min = -0.5*hole_period;
+        para.Max = 0.5*hole_period;
+        para.Units = "microns";
+        para.name = "S2y";
+        
+        # add the parameter to the optimization
+        addsweepparameter("qOptimizer", para);
+        
+        # define figure of merit
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        result_1.Optimize = true;
+        
+        # add the figure of merit Qmax to the optimization
+        addsweepresult("qOptimizer", result_1);
+        
+        
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "holeSweep");
+        setsweep("holeSweep", "type", "Ranges");
+        setsweep("holeSweep", "number of points", 20);
+        
+        para = struct;
+        para.Parameter = "::model::hole_period";
+        para.Type = "Length";
+        para.Start = 300e-9;
+        para.Stop = 600e-9;
+        para.Units = "microns";
+        para.name = "hole_period";
+        
+        # add the parameter to the sweep
+        addsweepparameter("holeSweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("holeSweep", result_1);
+        
+        
+    insertsweep("holeSweep");
+        setsweep("sweep","name","radiusSweep");
+        setsweep("radiusSweep", "type", "Ranges");
+        setsweep("radiusSweep", "number of points", 20);
+        
+        para = struct;
+        para.Parameter = "::model::hole_radius";
+        para.Type = "Length";
+        para.Start = 50e-9;
+        para.Stop = 300e-9;
+        para.Units = "microns";
+        para.name = "hole_radius";
+        
+        # add the parameter to the sweep
+        addsweepparameter("radiusSweep", para); 
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("radiusSweep", result_1);
+        
+        
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "S1xSweep");
+        setsweep("S1xSweep", "type", "Ranges");
+        setsweep("S1xSweep", "number of points", 30);
+        
+        para = struct;
+        para.Parameter = "::model::S1x";
+        para.Type = "Length";
+        para.Start = 70e-9;
+        para.Stop = 105e-9;
+        para.Units = "microns";
+        para.name = "S1x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S1xSweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S1xSweep", result_1);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Lambda_0";
+        result_1.Result = "::model::Qanalysis::lam0";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S1xSweep", result_1);
+        
+    insertsweep("S1xSweep");
+        setsweep("sweep","name","S2xSweep");
+        setsweep("S2xSweep", "type", "Ranges");
+        setsweep("S2xSweep", "number of points", 20);
+        
+        para = struct;
+        para.Parameter = "::model::S2x";
+        para.Type = "Length";
+        para.Start = 10e-9;
+        para.Stop = 60e-9;
+        para.Units = "microns";
+        para.name ="S2x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S2xSweep", para); 
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S2xSweep", result_1);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Lambda_0";
+        result_1.Result = "Lambda_0";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S2xSweep", result_1);
+        
+        
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "S1ySweep");
+        setsweep("S1ySweep", "type", "Ranges");
+        setsweep("S1ySweep", "number of points", 21);
+        
+        para = struct;
+        para.Parameter = "::model::S1y";
+        para.Type = "Length";
+        para.Start = -100e-9;
+        para.Stop = 100e-9;
+        para.Units = "microns";
+        para.name = "S1y";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S1ySweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S1ySweep", result_1);
+        
+    insertsweep("S1ySweep");
+        setsweep("sweep","name","S2ySweep");
+        setsweep("S2ySweep", "type", "Ranges");
+        setsweep("S2ySweep", "number of points", 21);
+        
+        para = struct;
+        para.Parameter = "::model::S2y";
+        para.Type = "Length";
+        para.Start = -100e-9;
+        para.Stop = 100e-9;
+        para.Units = "microns";
+        para.name ="S2y";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S2ySweep", para); 
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S2ySweep", result_1);
+    
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "S3xSweep");
+        setsweep("S3xSweep", "type", "Ranges");
+        setsweep("S3xSweep", "number of points", 21);
+        
+        para = struct;
+        para.Parameter = "::model::S3x";
+        para.Type = "Length";
+        para.Start = -150e-9;
+        para.Stop = 150e-9;
+        para.Units = "microns";
+        para.name = "S3x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S3xSweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S3xSweep", result_1);
+        
+    insertsweep("S3xSweep");
+        setsweep("sweep","name","S4xSweep");
+        setsweep("S4xSweep", "type", "Ranges");
+        setsweep("S4xSweep", "number of points", 21);
+        
+        para = struct;
+        para.Parameter = "::model::S4x";
+        para.Type = "Length";
+        para.Start = -150e-9;
+        para.Stop = 150e-9;
+        para.Units = "microns";
+        para.name ="S4x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S4xSweep", para); 
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S4xSweep", result_1);  
+        
+        
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "S5xSweep");
+        setsweep("S5xSweep", "type", "Ranges");
+        setsweep("S5xSweep", "number of points", 40);
+        
+        para = struct;
+        para.Parameter = "::model::S5x";
+        para.Type = "Length";
+        para.Start = -150e-9;
+        para.Stop = 150e-9;
+        para.Units = "microns";
+        para.name = "S5x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S5xSweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S5xSweep", result_1);
+        
+    # add a new sweep and set basic properties
+    addsweep;
+        setsweep("sweep", "name", "S1_1xSweep");
+        setsweep("S1_1xSweep", "type", "Ranges");
+        setsweep("S1_1xSweep", "number of points", 10);
+        
+        para = struct;
+        para.Parameter = "::model::S1_1x";
+        para.Type = "Length";
+        para.Start = 0e-9;
+        para.Stop = 150e-9;
+        para.Units = "microns";
+        para.name = "S1_1x";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S1_1xSweep", para);
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "::model::Qanalysis::Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S1_1xSweep", result_1);
+        
+    insertsweep("S1_1xSweep");
+        setsweep("sweep","name","S1_1ySweep");
+        setsweep("S1_1ySweep", "type", "Ranges");
+        setsweep("S1_1ySweep", "number of points", 10);
+        
+        para = struct;
+        para.Parameter = "::model::S1_1y";
+        para.Type = "Length";
+        para.Start = 0e-9;
+        para.Stop = 150e-9;
+        para.Units = "microns";
+        para.name ="S1_1y";
+        
+        # add the parameter to the sweep
+        addsweepparameter("S1_1ySweep", para); 
+        
+        # define result
+        result_1 = struct;
+        result_1.Name = "Q_max";
+        result_1.Result = "Q_max";
+        
+        # add the result Qmax to the sweep
+        addsweepresult("S1_1ySweep", result_1);
+}  
+
+if(sim_type==1){ 
+    #Set global simulation properties for source and monitor
+    setglobalsource("center wavelength",gl_center_wavelength);
+        setglobalsource("wavelength span", gl_wavelength_span); 
+        setglobalmonitor("use source limits",0);
+        setglobalmonitor("frequency points",1);
+        setglobalmonitor("wavelength center",gl_center_wavelength);
+}
+else if(sim_type==0){ 
+    #Set global simulation properties for source and monitor
+    setglobalsource("center wavelength",gl_center_wavelength);
+        setglobalsource("wavelength span", 0); 
+        setglobalmonitor("use source limits",0);
+        setglobalmonitor("frequency points",100);
+        setglobalmonitor("wavelength center",gl_center_wavelength);
+} 
+#Save in the current directory under the given name
+save(name);
