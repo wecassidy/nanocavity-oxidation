@@ -1,0 +1,295 @@
+deleteall;
+
+if(!sim_size_self){
+    sim_size_x=(2*hole_number_x+1)*hole_period+1e-6;
+    sim_size_y=(2*hole_number_y+1)*hole_period*sqrt(3)/2+1e-6;
+}
+
+resonances=matrix(number_resonances,1);
+#If you increase the resonance number add frequency here
+try{    
+    resonances(1)=c/(1552e-9);   
+    resonances(2)=0;
+    resonances(3)=0;
+    resonances(4)=0;
+}catch(temp);
+
+#add strucutre group to put all geometry objects in
+addstructuregroup;
+    set("name","geometry");
+    select("geometry");
+    adduserprop("x_pos",2,x_pos);
+    adduserprop("y_pos",2,y_pos);
+    
+    adduserprop("hole_number_x",0,hole_number_x);
+    adduserprop("hole_number_y",0,hole_number_y);
+    adduserprop("hole_number_wg",0,hole_number_wg);
+    adduserprop("hole_period",2,hole_period);
+    adduserprop("hole_radius",2,hole_radius);
+    adduserprop("slot_width",2,slot_width);
+    adduserprop("bridge_width",2,bridge_width);
+    
+    adduserprop("S1x",2,S1x);
+    adduserprop("S2x",2,S2x);
+    adduserprop("S3x",2,S3x);
+    adduserprop("S4x",2,S4x);
+    adduserprop("S5x",2,S5x);
+    adduserprop("S1y",2,S1y);
+    adduserprop("S2y",2,S2y);
+    adduserprop("S1_1x",2,S1_1x);
+    adduserprop("S1_1y",2,S1_1y);
+
+    adduserprop("etch_mat",5,etch_mat);
+    adduserprop("origin_x",2,origin_x);
+    adduserprop("origin_y",2,origin_y);
+    adduserprop("origin_z",2,origin_z);
+    
+    adduserprop("wg_width",2,wg_width);
+    adduserprop("wg_height",2,wg_height);
+    adduserprop("wg_mat",5,wg_mat);
+    adduserprop("wg_base_angle",0,wg_base_angle);
+    adduserprop("box_mat",5,box_mat);
+    adduserprop("cladding_mat",5,cladding_mat);
+    adduserprop("alpha",0,alpha);
+    adduserprop("sim_size_x",2,sim_size_x);
+    adduserprop("sim_size_y",2,sim_size_y);
+    adduserprop("sim_size_z",2,sim_size_z);
+    
+    #give all the needed scripts as strings to the model
+    adduserprop("cavity_setup",1,cavity_setup);
+
+    set("script",geometry_setup);
+
+#add fdtd area
+addfdtd;
+    setnamed("FDTD","x",origin_x);
+    setnamed("FDTD","x span",sim_size_x);
+    setnamed("FDTD","y",origin_y);
+    setnamed("FDTD","y span",sim_size_y);
+    setnamed("FDTD","z",origin_z);
+    setnamed("FDTD","z span", sim_size_z);
+    setnamed("FDTD","mesh accuracy",mesh_accuracy);
+    setnamed("FDTD","simulation time",simulation_time);
+    if(sim_type==1){        
+        setnamed("FDTD","use auto shutoff",0);
+    }
+    setnamed("FDTD","allow symmetry on all boundaries",0);
+      
+    #set pml settings based on xiruos simulations      
+    setnamed("FDTD","pml profile",4);
+    setnamed("FDTD","pml layers",layer_count);
+    setnamed("FDTD","pml kappa",20);
+    setnamed("FDTD","pml sigma",0.1);
+    setnamed("FDTD","pml polynomial",3);
+    setnamed("FDTD","pml alpha",0);
+    setnamed("FDTD","pml alpha polynomial",1);
+    setnamed("FDTD","pml min layers",layer_count);
+    setnamed("FDTD","pml max layers",128);
+    
+    
+    #set symmetric boundry conditions 
+    if((x_symmetry==1) &(sim_type==1)){
+        setnamed("FDTD","x min bc","symmetric");
+    }
+    else if((x_symmetry==2) &(sim_type==1)){
+        setnamed("FDTD","x min bc","anti-symmetric");
+    }
+    
+    if(y_symmetry==1){
+        setnamed("FDTD","y min bc","symmetric");
+    }
+    else if(y_symmetry==2){
+        setnamed("FDTD","y min bc","anti-symmetric");
+    }
+    
+    if(z_symmetry==1){
+        setnamed("FDTD","z min bc","symmetric");
+    }
+    else if(z_symmetry==2){
+        setnamed("FDTD","z min bc","anti-symmetric");
+    }    
+
+#add slot mesh
+if(slot_width>0 & slot_mesh){
+    addmesh;
+    set("name","slot_mesh");
+    set("x",origin_x);
+    set("y",origin_y);
+    set("z",origin_z);
+    set("x span",hole_period+2*S1x );
+    set("y span",slot_width);
+    set("z span",wg_height);
+    set("override x mesh",0);
+    set("override z mesh",0);
+    set("dy",slot_mesh_dy);   
+}
+
+addmesh;
+    set("name","cav_mesh");
+    set("x",origin_x);
+    set("y",origin_y);
+    set("z",origin_z);
+    set("x span",8e-6);
+    set("y span",8e-6);
+    set("z span",sim_size_z);
+    set("dx",7e-9);
+    set("dz",22e-9);
+    set("dy",7e-9);
+    
+addmesh;
+    set("name","tot_mesh");
+    set("x",origin_x);
+    set("y",origin_y);
+    set("z",origin_z);
+    set("x span",sim_size_x);
+    set("y span",sim_size_y);
+    set("z span",sim_size_z);
+    set("dx",14e-9);
+    set("dz",200e-9);
+    set("dy",14e-9);
+
+#add beam mesh
+if(bridge_width>0 & bridge_mesh){
+    addmesh;
+    set("name","bridge_mesh");
+    set("x",origin_x);
+    set("y",origin_y);
+    set("z",origin_z);
+    set("x span", bridge_width);
+    set("y span",slot_width);
+    set("z span",wg_height);
+    set("override y mesh",0);
+    set("override z mesh",0);
+    set("dx",bridge_mesh_dx);   
+}     
+
+#add field profile monitors for each resonance frequency
+addanalysisgroup;
+    set("name","mode_profiles");
+    
+    adduserprop("number_resonances",0,number_resonances);
+    adduserprop("origin_x",2,origin_x);
+    adduserprop("origin_y",2,origin_y);
+    adduserprop("origin_z",2,origin_z);
+    adduserprop("sim_size_x",2,sim_size_x);
+    adduserprop("sim_size_y",2,sim_size_y);
+    adduserprop("apo_center",3,apo_center);
+    adduserprop("apo_width_time",3,apo_width_time);
+    adduserprop("sim_type",0,sim_type);
+    
+    for(i=1;i<=number_resonances;i=i+1){
+        adduserprop("f_mode_"+num2str(i),4,resonances(i));   
+    }
+    
+    set("Setup Script",mode_profile_setup);
+    
+    addanalysisresult("E2");
+    addanalysisresult("f0");
+    
+    set("Analysis Script",mode_analysis);
+        
+if(sim_type==1){
+    #add source cloud
+    addanalysisgroup;
+        set("name", "source_cloud");
+        
+        adduserprop("source_0_elec_1_mag",0,source_0_elec_1_mag);
+        adduserprop("source_window_x",2,source_window_x);
+        adduserprop("source_window_y",2,source_window_y);
+        adduserprop("source_window_z",2,source_window_z);
+        adduserprop("source_number",0,source_number);
+        adduserprop("origin_z",2,origin_z);
+        adduserprop("origin_x",2,x_pos);
+        adduserprop("origin_y",2,y_pos);
+        adduserprop("random_seed",0,random_seed);
+        
+        set("Setup Script",source_setup); 
+    
+    #add resonance frequency analysis based on Lumerical example pc_3D_cavity 
+    addanalysisgroup;
+        set("name","resonance finder");
+        
+        adduserprop("x_span_freq",2,x_span_freq);
+        adduserprop("y_span_freq",2,y_span_freq);
+        adduserprop("z_span_freq",2,z_span_freq);
+        adduserprop("origin_z",2,origin_z);
+        adduserprop("origin_x",2,x_pos);
+        adduserprop("origin_y",2,y_pos);
+        adduserprop("random_seed",0,random_seed);
+        adduserprop("N",0,monitor_number);
+        
+        set("Setup Script",resonance_setup); 
+        
+        addanalysisprop("number_resonances",0,number_resonances);
+        addanalysisresult("f_res");
+        addanalysisresult("spectrum_res");
+        addanalysisresult("lambda0");
+        addanalysisresult("f0");
+        
+        set("Analysis Script",resonance_analysis);
+        
+            
+            
+    #add Q-factor analysis group based on Lumerical example quality_factor_3D
+    addanalysisgroup;
+        set("name","Qanalysis");
+        
+        adduserprop("x span",2,x_span_analysis);
+        adduserprop("y span",2,y_span_analysis);
+        adduserprop("z span",2,z_span_analysis);
+        adduserprop("nx",0,n_monitor_x);
+        adduserprop("ny",0,n_monitor_y);
+        adduserprop("nz",0,n_monitor_z);
+        
+        #set("y",y_span_analysis/2);
+        set("setup script",q_setup);
+        
+        addanalysisprop("number resonances",0,number_resonances);
+        addanalysisprop("make plots",0,make_plots);
+        addanalysisresult("Q");
+        addanalysisresult("spectrum");
+        addanalysisresult("Q_max");
+        addanalysisresult("lam0");
+        
+        set("analysis script",q_analysis);
+    
+    addanalysisgroup;
+        set("name","mode_voulme");
+        
+        adduserprop("number_resonances",0,number_resonances);
+        adduserprop("origin_x",2,origin_x);
+        adduserprop("origin_y",2,origin_y);
+        adduserprop("sim_size_x",2,sim_size_x);
+        adduserprop("sim_size_y",2,sim_size_y);
+        adduserprop("sim_size_z",2,sim_size_z);
+        adduserprop("apo_center",3,apo_center);
+        adduserprop("apo_width_time",3,apo_width_time);
+        
+        for(i=1;i<=number_resonances;i=i+1){
+            adduserprop("f_mode_"+num2str(i),4,resonances(i));   
+        }
+        
+        set("setup script",volume_setup);
+        
+        addanalysisprop("calc_type",0,calc_type);
+        addanalysisprop("make_plots",0,make_plots);
+        addanalysisresult("Volume");
+        
+        set("analysis script",volume_analysis);
+}
+
+else if(sim_type==0){
+    addport;
+        set("name","input");
+        set("x",-(hole_number_wg+2)*hole_period);
+        set("y span",sqrt(3)*hole_period+2*hole_radius);
+    
+    addport;
+        set("name","output");
+        set("x",(hole_number_wg+2)*hole_period);
+        set("y span",sqrt(3)*hole_period+2*hole_radius);     
+        
+    addmovie;
+        set("x span",sim_size_x);
+        set("y span",sim_size_y);  
+}  

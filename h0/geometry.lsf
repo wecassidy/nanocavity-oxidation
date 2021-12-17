@@ -1,0 +1,100 @@
+deleteall;
+#Add the waveguide
+#addwaveguide;
+    #poles=[-(fdtd_size_x/2+5e-6),0;fdtd_size_x/2+5e-6,0];
+    #set("x",origin_x);
+    #set("y",origin_y);
+    #set("base width",wg_width);
+    #set("poles",poles);
+    #set("base height",wg_height);
+    #set("name","wave_guide");
+    #set("material",wg_mat);
+    #set("base angle",wg_base_angle);
+    #set("override mesh order from material database",1);
+    #set("mesh order",2); 
+
+#add the cavity
+#Inputs:
+    #x_pos: x Position of the cavity center
+    #y_pos: y Position of the cavity center
+    #orientation: Orientation of the cavity, x: along x, y: along y 
+    
+    #wg_height: height of the etched silicon
+    #etch_mat: material inside the etched regions
+    
+    #mirror_distance: distance between the center holes
+    #slot_width: width of the slot
+    
+    #hole_number: number of untapered holes
+    #hole_periode: periode of the holes
+    #hole_radius: radius of the untapered holes
+    
+    #taper_number: number of tapered holes, linear increase
+    #radius_taper_strenght: 0.1 -> first hole is 0.1*r, linear to 1
+    
+    #bridge_width: width of the nanobeam in the slot
+    
+#Create waveguide cavity as substructure
+addstructuregroup;
+set("name","H0_cavity");
+select("H0_cavity");
+
+#userprops are necessary to use the variables within the construction script
+adduserprop("x_pos",2,x_pos);
+adduserprop("y_pos",2,y_pos);
+
+adduserprop("wg_height",2,wg_height);
+adduserprop("etch_mat",5,etch_mat);
+adduserprop("wg_mat",5,wg_mat);
+adduserprop("slot_width",2,slot_width);
+adduserprop("bridge_width",2,bridge_width);
+
+adduserprop("S1x",2,S1x);
+adduserprop("S2x",2,S2x);
+adduserprop("S3x",2,S3x);
+adduserprop("S4x",2,S4x);
+adduserprop("S5x",2,S5x);
+
+adduserprop("S1y",2,S1y);
+adduserprop("S2y",2,S2y);
+
+adduserprop("S1_1x",2,S1_1x);
+adduserprop("S1_1y",2,S1_1y);
+    
+adduserprop("hole_number_x",0,hole_number_x);
+adduserprop("hole_number_y",0,hole_number_y);
+adduserprop("hole_number_wg",0,hole_number_wg);
+adduserprop("hole_period",2,hole_period);
+adduserprop("hole_radius",2,hole_radius);
+
+
+set("construction group",1);
+set("script",cavity_setup);
+
+#add cladding
+addrect;
+    set("name","cladding");
+    set("material",cladding_mat);
+    set("z min",origin_z-wg_height/2);
+    set("z max",sim_size_z/2+5e-6);
+    set("x",origin_x);
+    set("x span",sim_size_x+5e-6);
+    set("y",origin_y);
+    set("y span",sim_size_y+5e-6);
+    set("override mesh order from material database",1);
+    set("mesh order",3); 
+    set("alpha",alpha);
+
+#add BOX layer
+addrect;
+    set("name","BOX");
+    set("material",box_mat);
+    set("z max",origin_z-wg_height/2);
+    set("z min",-(sim_size_z/2+5e-6));
+    set("x",origin_x);
+    set("x span",sim_size_x+5e-6);
+    set("y",origin_y);
+    set("y span",sim_size_y+5e-6);
+    set("override mesh order from material database",1);
+    set("mesh order",3); 
+    set("alpha",alpha);

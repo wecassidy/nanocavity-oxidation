@@ -1,0 +1,54 @@
+##############################################
+# Q analysis
+# This script sets up the Q analysis time monitors.
+#
+# Input properties
+# x,y,z span: object span
+# nx,ny,nz: number of positions along each axis to place monitors
+#
+# Tags: resonator high q analysis quality factor
+#
+# Copyright 2012 Lumerical Solutions Inc
+##############################################
+
+deleteall;
+# simplify variable names by removing spaces
+x_span = %x span%;
+y_span = %y span%;
+z_span = %z span%;
+
+# error checking on the inputs
+nx = round(nx);
+ny = round(ny);
+nz = round(nz);
+
+if( (x_span==0) | (nx < 1)) { nx = 1; }
+if( (y_span==0) | (ny < 1)) { ny = 1; }
+if( (z_span==0) | (nz < 1)) { nz = 1; }
+if(nx == 1) { x_span = 0; }
+if(ny == 1) { y_span = 0; }
+if(nz == 1) { z_span = 0; }
+
+# define position vectors for monitors
+#xpos = linspace(-0.5*x_span,0.5*x_span,nx);
+#ypos = linspace(-0.5*y_span,0.5*y_span,ny);
+#zpos = linspace(-0.5*z_span,0.5*z_span,nz);
+
+xpos = linspace(0,x_span,nx);
+ypos = linspace(0,y_span,ny);
+zpos = linspace(0,z_span,nz);
+
+# add the monitors
+mon_counter = 0;
+for(i=1:nx) {
+    for(j=1:ny) {
+        for(k=1:nz) {
+            mon_counter = mon_counter + 1;
+            addtime;
+            set("name","t"+num2str(mon_counter));
+            set("x",xpos(i));
+            set("y",ypos(j));
+            set("z",zpos(k));
+        }
+    }
+}

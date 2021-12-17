@@ -1,0 +1,64 @@
+deleteall;
+
+for(i=1;i<=number_resonances;i=i+1){
+    addpower;
+        set("name","field_"+num2str(i));
+        set("monitor type","3D"); 
+        set("output power",0);
+        set("apodization","start");
+        set("apodization center",apo_center);
+        set("apodization time width",apo_width_time);
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",0);
+        set("x span",sim_size_x);
+        set("y span",sim_size_y);
+        set("z span",sim_size_z);
+        set("override global monitor settings",1);
+        set("use source limits",0);
+        set("frequency span",0);
+        set("frequency points",1);
+        try{
+            eval("f=f_mode_"+num2str(i)+";");
+            set("frequency center",f);
+        }catch(errMsg);
+        if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+            print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+        }
+    
+    addindex;
+        set("name","index_"+num2str(i));
+        set("monitor type","3D");
+        set("x",origin_x);
+        set("y",origin_y);
+        set("z",0);
+        set("x span",sim_size_x);
+        set("y span",sim_size_y);
+        set("z span",sim_size_z);
+        set("override global monitor settings",1);
+        set("use source limits",0);
+        set("frequency span",0);
+        set("frequency points",1);
+        try{
+            eval("f=f_mode_"+num2str(i)+";");
+            set("frequency center",f);
+        }catch(errMsg);
+        if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+            print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+        }
+   
+    
+    
+    
+    set("override global monitor settings",1);
+    set("use source limits",0);
+    set("frequency span",0);
+    set("frequency points",1);
+    try{
+        eval("f=f_mode_"+num2str(i)+";");
+        set("frequency center",f);
+    }catch(errMsg);
+    if(errMsg=="Error: prompt line 1: f_mode_"+num2str(i)+" is not a valid function or variable name"){
+        print("Solution: add additional user property for resonance with name f_mode_"+num2str(i)); 
+    }
+}

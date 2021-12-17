@@ -1,0 +1,155 @@
+#construct hole matrix
+#1. collum is hole number, 2. is x, 3. is y, 4. is radius 
+hole_number=hole_number_y*hole_number_x;
+holes=matrix(hole_number,4);
+
+shifts=[S1x,S2x,S3x,S4x,S5x];
+
+counter=1; 
+for(i=1;i<=hole_number_y;i=i+1){
+    
+    for(j=1;j<=hole_number_x;j=j+1){
+        
+        #enumerate holes
+        holes(counter,1)=counter;
+    
+        #fills the x position 
+        if( (i==2) & (j==2)){
+            holes(counter,2)=x_pos+(j-1)*hole_period+S1_1x;
+        }
+        else if(mod(i,2)==0){
+            holes(counter,2)=x_pos+(j-1)*hole_period;
+        }
+        else{
+            if( (i==1) & (j<6) ){
+                holes(counter,2)=x_pos+(0.5+j-1)*hole_period+shifts(j);
+            }
+            else{
+                holes(counter,2)=x_pos+(0.5+j-1)*hole_period;
+            }
+        }
+        
+        #fills the y position
+        if( (j==1) & (i==2) ){
+            holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S1y;
+        }
+        else if( (j==1) & (i==4) ){
+            holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S2y;
+        }
+        else if( (j==2) & (i==2)){
+            holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period+S1_1y;   
+        }
+        else{
+            holes(counter,3)=y_pos+sqrt(3)/2*(i-1)*hole_period;
+        }
+        
+        #fills the radius
+        holes(counter,4)=hole_radius;
+        
+        counter=counter+1;
+    }
+}
+
+#add holes based on hole matrix in quadrant 1
+for(i=1;i<=hole_number;i=i+1){
+    if(!((hole_number_wg<i) & (i<=hole_number_x)) ){
+        addcircle;
+        set("name","hole_q1_"+num2str(holes(i,1)));
+        set("x",holes(i,2));
+        set("y",holes(i,3)); 
+        set("z",0);
+        set("z span",wg_height);
+        set("radius",holes(i,4)); 
+        set("material",etch_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",1); 
+    }
+}
+
+#add holes based on hole matrix in quadrant 2
+for(i=1;i<=hole_number;i=i+1){
+    if( (holes(i,2)!=0) & (holes(i,3)!=0) ){
+        addcircle;
+        set("name","hole_q2_"+num2str(holes(i,1)));
+        set("x",-holes(i,2));
+        set("y",holes(i,3)); 
+        set("z",0);
+        set("z span",wg_height);
+        set("radius",holes(i,4)); 
+        set("material",etch_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",1); 
+    }    
+}
+
+#add holes based on hole matrix in quadrant 3
+for(i=1;i<=hole_number;i=i+1){
+    if(!((hole_number_wg<i) & (i<=hole_number_x)) ){
+        addcircle;
+        set("name","hole_q3_"+num2str(holes(i,1)));
+        set("x",-holes(i,2));
+        set("y",-holes(i,3)); 
+        set("z",0);
+        set("z span",wg_height);
+        set("radius",holes(i,4)); 
+        set("material",etch_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",1); 
+    }
+}
+
+#add holes based on hole matrix in quadrant 4
+for(i=1;i<=hole_number;i=i+1){
+    if( (holes(i,2)!=0) & (holes(i,3)!=0) ){
+        addcircle;
+        set("name","hole_q4_"+num2str(holes(i,1)));
+        set("x",holes(i,2));
+        set("y",-holes(i,3)); 
+        set("z",0);
+        set("z span",wg_height);
+        set("radius",holes(i,4)); 
+        set("material",etch_mat);
+        set("override mesh order from material database",1);
+        set("mesh order",1); 
+    }
+}
+
+
+#draw the slot connecting the center holes if slot_width is >0
+if(slot_width>0){
+    #Draw center slot with nanobeam
+    addrect;
+    set("name","slot_right");
+    set("x min",bridge_width/2);
+    set("x max",holes(1,2));       
+    set("y",0);
+    set("y span",slot_width);
+    set("z",0);
+    set("z span",wg_height);
+    set("material",etch_mat);
+    set("override mesh order from material database",1);
+    set("mesh order",1); 
+    
+    addrect;
+    set("name","slot_left");
+    set("x min",-holes(1,2));
+    set("x max",-bridge_width/2);
+    set("y",0);
+    set("y span",slot_width);
+    set("z",0);
+    set("z span",wg_height);
+    set("material",etch_mat);  
+    set("override mesh order from material database",1);
+    set("mesh order",1);    
+}    
+
+addrect;
+    set("name","slab");
+    set("x",x_pos);
+    set("x span",(2*hole_number_x+1)*hole_period);
+    set("y",y_pos);
+    set("y span",(2*hole_number_y+1)*hole_period*sqrt(3)/2);
+    set("z span", wg_height);
+    set("material",wg_mat);
+    set("override mesh order from material database",1);
+    set("mesh order",2);
