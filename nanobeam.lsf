@@ -16,7 +16,7 @@ clear;
 ring_thickness = 2e-9;
 ring_material = "SiO2 (Glass) - Palik";
 
-name = "nanobeam_ring_" + num2str(ring_thickness / 1e-9) + "nm";  #name for saving
+name = "nanobeam_" + num2str(ring_thickness / 1e-9) + "nm";  #name for saving
 
 #random seed for all random generators (5 chars)
 random_seed=123456;
