@@ -1,28 +1,51 @@
 #draw the slot connecting the center holes if slot_width is >0
 if(slot_width>0){
+    addrect;
+        set("name", "slot_oxide_right");
+        set("x min", x_pos + bridge_width / 2);
+        set("x max", mirror_distance / 2 + radius_taper_strength * hole_radius);
+        set("y", y_pos);
+        set("y span", slot_width);
+        set("z", 0);
+        set("z span", wg_height);
+        set("material", oxide_material);
+        set("override mesh order from material database", 1);
+        set("mesh order", 2);
+
+    addrect;
+        set("name", "slot_oxide_left");
+        set("x min", -(mirror_distance / 2 + radius_taper_strength * hole_radius));
+        set("x max", x_pos - bridge_width / 2);
+        set("y", y_pos);
+        set("y span", slot_width);
+        set("z", 0);
+        set("z span", wg_height);
+        set("material", oxide_material);
+        set("override mesh order from material database", 1);
+        set("mesh order", 2);
+
     #Draw center slot with nanobeam
     addrect;
     set("name","slot_right");
-    set("x min",x_pos+bridge_width/2);
-    set("x max",mirror_distance/2+radius_taper_strength*hole_radius);
+    set("x min", x_pos + bridge_width / 2 + oxide_thickness);
+    set("x max", mirror_distance / 2 + radius_taper_strength * hole_radius - oxide_thickness);
     #set("x max",mirror_distance/2);
     set("y",y_pos);
-    set("y span",slot_width);
-    set("z",0);
-    set("z span",wg_height);
+    set("y span", slot_width - oxide_thickness * 2);
+    set("z min", -wg_height / 2);
+    set("z max", wg_height / 2 + oxide_thickness);
     set("material",etch_mat);
     set("override mesh order from material database",1);
     set("mesh order",1);
 
     addrect;
     set("name","slot_left");
-    set("x min",-(mirror_distance/2+radius_taper_strength*hole_radius));
-    #set("x min",-(mirror_distance/2));
-    set("x max",x_pos-bridge_width/2);
+    set("x min", -(mirror_distance / 2 + radius_taper_strength * hole_radius - oxide_thickness));
+    set("x max", x_pos - bridge_width / 2 - oxide_thickness);
     set("y",y_pos);
-    set("y span",slot_width);
-    set("z",0);
-    set("z span",wg_height);
+    set("y span", slot_width - oxide_thickness * 2);
+    set("z min", -wg_height / 2);
+    set("z max", wg_height / 2 + oxide_thickness);
     set("material",etch_mat);
     set("override mesh order from material database",1);
     set("mesh order",1);
@@ -118,24 +141,52 @@ for(i=1;i<=2*hole_number;i=i+1){
     set("name","hole_"+num2str(holes(i,1)));
     set("x",holes(i,2));
     set("y",holes(i,3));
-    set("z",0);
-    set("z span",wg_height);
-    set("radius",holes(i,4) - ring_thickness);
+    set("z min", -wg_height / 2);
+    set("z max", wg_height / 2 + oxide_thickness);
+    set("radius",holes(i,4) - oxide_thickness);
     set("material",etch_mat);
     set("override mesh order from material database",1);
     set("mesh order",1);
 
     addring;
-    set("name", "ring_"+num2str(holes(i, 1)));
+    set("name", "oxide_"+num2str(holes(i, 1)));
     set("x", holes(i, 2));
     set("y", holes(i, 3));
     set("z", 0);
     set("z span", wg_height);
-    set("inner radius", holes(i, 4) - ring_thickness);
+    set("inner radius", holes(i, 4) - oxide_thickness);
     set("outer radius", holes(i, 4));
     set("theta start", 0);
     set("theta stop", 360);
-    set("material", ring_material);
+    set("material", oxide_material);
     set("override mesh order from material database", 1);
     set("mesh order", 1);
 }
+
+addrect;
+    set("name", "oxide_top");
+    set("x", x_pos);
+    set("y", y_pos);
+    set("z", (wg_height + oxide_thickness) / 2);
+    set("x span", oxide_length);
+    set("y span", wg_width + oxide_thickness * 2);
+    set("z span", oxide_thickness);
+    set("material", oxide_material);
+
+addrect;
+    set("name", "oxide_front");
+    set("x", x_pos);
+    set("y", y_pos + (wg_width + oxide_thickness) / 2);
+    set("z", 0);
+    set("x span", oxide_length);
+    set("y span", oxide_thickness);
+    set("z span", wg_height);
+
+addrect;
+    set("name", "oxide_back");
+    set("x", x_pos);
+    set("y", y_pos - (wg_width + oxide_thickness) / 2);
+    set("z", 0);
+    set("x span", oxide_length);
+    set("y span", oxide_thickness);
+    set("z span", wg_height);

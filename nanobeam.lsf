@@ -13,10 +13,11 @@ clear;
 #####################################################################################
 #Declear variables and there inital values in SI units
 
-ring_thickness = 2e-9;
-ring_material = "SiO2 (Glass) - Palik";
+oxide_thickness = 10e-9;
+oxide_length = 10e-6;
+oxide_material = "SiO2 (Glass) - Palik";
 
-name = "nanobeam_" + num2str(ring_thickness / 1e-9) + "nm";  #name for saving
+name = "nanobeam_" + num2str(oxide_thickness / 1e-9) + "nm";  #name for saving
 
 #random seed for all random generators (5 chars)
 random_seed=123456;
@@ -286,8 +287,9 @@ adduserprop("slot_width",2,slot_width);
 adduserprop("hole_number",0,hole_number);
 adduserprop("hole_period",2,hole_period);
 adduserprop("hole_radius",2,hole_radius);
-adduserprop("ring_thickness", 2, ring_thickness);
-adduserprop("ring_material", 5, ring_material);
+adduserprop("oxide_thickness", 2, oxide_thickness);
+adduserprop("oxide_length", 2, oxide_length);
+adduserprop("oxide_material", 5, oxide_material);
 adduserprop("taper_number",0,taper_number);
 adduserprop("radius_taper_strength",0,radius_taper_strength);
 adduserprop("period_taper_strength",0,period_taper_strength);

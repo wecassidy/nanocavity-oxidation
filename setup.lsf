@@ -30,8 +30,9 @@ addstructuregroup;
     adduserprop("hole_number",0,hole_number);
     adduserprop("hole_period",2,hole_period);
     adduserprop("hole_radius",2,hole_radius);
-    adduserprop("ring_thickness", 2, ring_thickness);
-    adduserprop("ring_material", 5, ring_material);
+    adduserprop("oxide_thickness", 2, oxide_thickness);
+    adduserprop("oxide_length", 2, oxide_length);
+    adduserprop("oxide_material", 5, oxide_material);
     adduserprop("taper_number",0,taper_number);
     adduserprop("radius_taper_strength",0,radius_taper_strength);
     adduserprop("period_taper_strength",0,period_taper_strength);
@@ -190,7 +191,7 @@ addanalysisgroup;
 
     set("Setup Script",resonance_setup);
 
-    addanalysisprop("ring_thickness", 2, ring_thickness);
+    addanalysisprop("oxide_thickness", 2, oxide_thickness);
     addanalysisprop("number_resonances",0,number_resonances);
     addanalysisresult("f_res");
     addanalysisresult("spectrum_res");
