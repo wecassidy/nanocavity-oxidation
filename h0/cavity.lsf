@@ -54,15 +54,36 @@ for(i=1;i<=hole_number_y;i=i+1){
 for(i=1;i<=hole_number;i=i+1){
     if(!((hole_number_wg<i) & (i<=hole_number_x)) ){
         addcircle;
-        set("name","hole_q1_"+num2str(holes(i,1)));
-        set("x",holes(i,2));
-        set("y",holes(i,3)); 
-        set("z",0);
-        set("z span",wg_height);
-        set("radius",holes(i,4)); 
-        set("material",etch_mat);
-        set("override mesh order from material database",1);
-        set("mesh order",1); 
+            set("name","hole_q1_"+num2str(holes(i,1)));
+            set("x",holes(i,2));
+            set("y",holes(i,3)); 
+            set("material",etch_mat);
+            set("override mesh order from material database",1);
+            set("mesh order",1); 
+
+        if (sqrt((holes(i, 2) - x_pos) ^ 2 + (holes(i, 3) - y_pos) ^ 2) < oxide_radius) {
+            set("z min", -wg_height / 2);
+            set("z max", wg_height / 2 + oxide_thickness);
+            set("radius", holes(i, 4) - oxide_thickness);
+
+            addring;
+                set("name", "oxide_q1_" + num2str(holes(i, 1)));
+                set("x", holes(i, 2));
+                set("y", holes(i, 3));
+                set("z", 0);
+                set("z span", wg_height);
+                set("inner radius", holes(i, 4) - oxide_thickness);
+                set("outer radius", holes(i, 4));
+                set("theta start", 0);
+                set("theta stop", 360);
+                set("material", oxide_material);
+                set("override mesh order from material database", 1);
+                set("mesh order", 1);
+        } else {
+            set("z", 0);
+            set("z span", wg_height);
+            set("radius", holes(i, 4));
+        }
     }
 }
 
@@ -73,12 +94,33 @@ for(i=1;i<=hole_number;i=i+1){
         set("name","hole_q2_"+num2str(holes(i,1)));
         set("x",-holes(i,2));
         set("y",holes(i,3)); 
-        set("z",0);
-        set("z span",wg_height);
-        set("radius",holes(i,4)); 
         set("material",etch_mat);
         set("override mesh order from material database",1);
         set("mesh order",1); 
+
+        if (sqrt((holes(i, 2) - x_pos) ^ 2 + (holes(i, 3) - y_pos) ^ 2) < oxide_radius) {
+            set("z min", -wg_height / 2);
+            set("z max", wg_height / 2 + oxide_thickness);
+            set("radius", holes(i, 4) - oxide_thickness);
+
+            addring;
+                set("name", "oxide_q1_" + num2str(holes(i, 1)));
+                set("x", holes(i, 2));
+                set("y", holes(i, 3));
+                set("z", 0);
+                set("z span", wg_height);
+                set("inner radius", holes(i, 4) - oxide_thickness);
+                set("outer radius", holes(i, 4));
+                set("theta start", 0);
+                set("theta stop", 360);
+                set("material", oxide_material);
+                set("override mesh order from material database", 1);
+                set("mesh order", 1);
+        } else {
+            set("z", 0);
+            set("z span", wg_height);
+            set("radius", holes(i, 4));
+        }
     }    
 }
 
@@ -89,12 +131,33 @@ for(i=1;i<=hole_number;i=i+1){
         set("name","hole_q3_"+num2str(holes(i,1)));
         set("x",-holes(i,2));
         set("y",-holes(i,3)); 
-        set("z",0);
-        set("z span",wg_height);
-        set("radius",holes(i,4)); 
         set("material",etch_mat);
         set("override mesh order from material database",1);
         set("mesh order",1); 
+
+        if (sqrt((holes(i, 2) - x_pos) ^ 2 + (holes(i, 3) - y_pos) ^ 2) < oxide_radius) {
+            set("z min", -wg_height / 2);
+            set("z max", wg_height / 2 + oxide_thickness);
+            set("radius", holes(i, 4) - oxide_thickness);
+
+            addring;
+                set("name", "oxide_q1_" + num2str(holes(i, 1)));
+                set("x", holes(i, 2));
+                set("y", holes(i, 3));
+                set("z", 0);
+                set("z span", wg_height);
+                set("inner radius", holes(i, 4) - oxide_thickness);
+                set("outer radius", holes(i, 4));
+                set("theta start", 0);
+                set("theta stop", 360);
+                set("material", oxide_material);
+                set("override mesh order from material database", 1);
+                set("mesh order", 1);
+        } else {
+            set("z", 0);
+            set("z span", wg_height);
+            set("radius", holes(i, 4));
+        }
     }
 }
 
@@ -104,13 +167,34 @@ for(i=1;i<=hole_number;i=i+1){
         addcircle;
         set("name","hole_q4_"+num2str(holes(i,1)));
         set("x",holes(i,2));
-        set("y",-holes(i,3)); 
-        set("z",0);
-        set("z span",wg_height);
-        set("radius",holes(i,4)); 
+        set("y",-holes(i,3));
         set("material",etch_mat);
         set("override mesh order from material database",1);
         set("mesh order",1); 
+
+        if (sqrt((holes(i, 2) - x_pos) ^ 2 + (holes(i, 3) - y_pos) ^ 2) < oxide_radius) {
+            set("z min", -wg_height / 2);
+            set("z max", wg_height / 2 + oxide_thickness);
+            set("radius", holes(i, 4) - oxide_thickness);
+
+            addring;
+                set("name", "oxide_q1_" + num2str(holes(i, 1)));
+                set("x", holes(i, 2));
+                set("y", holes(i, 3));
+                set("z", 0);
+                set("z span", wg_height);
+                set("inner radius", holes(i, 4) - oxide_thickness);
+                set("outer radius", holes(i, 4));
+                set("theta start", 0);
+                set("theta stop", 360);
+                set("material", oxide_material);
+                set("override mesh order from material database", 1);
+                set("mesh order", 1);
+        } else {
+            set("z", 0);
+            set("z span", wg_height);
+            set("radius", holes(i, 4));
+        }
     }
 }
 
@@ -153,3 +237,15 @@ addrect;
     set("material",wg_mat);
     set("override mesh order from material database",1);
     set("mesh order",2);
+
+addcircle;
+    set("name", "oxide_slab");
+    set("x", x_pos);
+    set("y", y_pos);
+    set("z min", wg_height / 2);
+    set("z max", wg_height / 2 + oxide_thickness);
+    set("radius", oxide_radius);
+    set("material", oxide_material);
+    set("override mesh order from material database", 1);
+    set("mesh order", 2);
+    set("alpha", 0.6);

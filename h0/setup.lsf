@@ -26,6 +26,9 @@ addstructuregroup;
     adduserprop("hole_number_wg",0,hole_number_wg);
     adduserprop("hole_period",2,hole_period);
     adduserprop("hole_radius",2,hole_radius);
+    adduserprop("oxide_thickness", 2, oxide_thickness);
+    adduserprop("oxide_radius", 2, oxide_radius);
+    adduserprop("oxide_material", 5, oxide_material);
     adduserprop("slot_width",2,slot_width);
     adduserprop("bridge_width",2,bridge_width);
     
@@ -217,9 +220,11 @@ if(sim_type==1){
         adduserprop("origin_y",2,y_pos);
         adduserprop("random_seed",0,random_seed);
         adduserprop("N",0,monitor_number);
+        adduserprop("file_prefix", 1, file_prefix);
         
         set("Setup Script",resonance_setup); 
         
+        addanalysisprop("oxide_thickness", 2, oxide_thickness);
         addanalysisprop("number_resonances",0,number_resonances);
         addanalysisresult("f_res");
         addanalysisresult("spectrum_res");

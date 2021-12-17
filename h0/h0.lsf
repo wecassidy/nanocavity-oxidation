@@ -13,7 +13,11 @@ clear;
 #####################################################################################
 #Declear variables and there inital values in SI units
 
-name = "Joshua_24__H0_cavity_simulation_V23";  #name for saving
+oxide_thickness = 1e-9;
+oxide_radius = 5e-6;
+oxide_material = "SiO2 (Glass) - Palik";
+
+name = "sims/h0_" + num2str(oxide_thickness / 1e-9) + "nm";  #name for saving
 
 #Simulation type: 1 for Q-factor, 0 for pulse
 sim_type=1;
@@ -273,6 +277,7 @@ volume_analysis = read("vol_analysis.lsf");
 #add all variables as userproperties for the model
 adduserprop("sim_type",0,sim_type);
 adduserprop("random_seed",0,random_seed);
+adduserprop("file_prefix", 1, name);
 adduserprop("gl_center_wavelength",2,gl_center_wavelength);
 adduserprop("gl_wavelength_span",2,gl_wavelength_span);
 
@@ -284,6 +289,9 @@ adduserprop("hole_number_y",0,hole_number_y);
 adduserprop("hole_number_wg",0,hole_number_wg);
 adduserprop("hole_period",2,hole_period);
 adduserprop("hole_radius",2,hole_radius);
+adduserprop("oxide_thickness", 2, oxide_thickness);
+adduserprop("oxide_radius", 2, oxide_radius);
+adduserprop("oxide_material", 5, oxide_material);
 adduserprop("slot_width",2,slot_width);
 adduserprop("bridge_width",2,bridge_width);
 

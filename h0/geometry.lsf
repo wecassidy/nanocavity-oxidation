@@ -66,6 +66,9 @@ adduserprop("hole_number_y",0,hole_number_y);
 adduserprop("hole_number_wg",0,hole_number_wg);
 adduserprop("hole_period",2,hole_period);
 adduserprop("hole_radius",2,hole_radius);
+adduserprop("oxide_thickness", 2, oxide_thickness);
+adduserprop("oxide_radius", 2, oxide_radius);
+adduserprop("oxide_material", 5, oxide_material);
 
 
 set("construction group",1);

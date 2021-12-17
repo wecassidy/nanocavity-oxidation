@@ -67,8 +67,20 @@ for(i=1:N) {
 }
 
 spectrum_res = spectrum_res / abs(sourcenorm(f_res))^2;
-plot(lambda*1e6,log10(spectrum_res),"wavelength (microns)","spectrum, logscale (a.u.)");
-plot(f_res*1e-12,log10(spectrum_res),"frequency (THz)","spectrum, logscale (a.u.)");
+plot(
+    lambda * 1e6,
+    log10(spectrum_res),
+    "wavelength (microns)",
+    "spectrum, logscale (a.u.)",
+    num2str(oxide_thickness / 1e-9) + "nm oxide layers in H0 cavity"
+);
+plot(
+    f_res * 1e-12,
+    log10(spectrum_res),
+    "frequency (THz)",
+    "spectrum, logscale (a.u.)",
+    num2str(oxide_thickness / 1e-9) + "nm oxide layers in H0 cavity"
+);
 
 #################################################
 # find resonant peaks
@@ -84,4 +96,17 @@ for(i=1:length(lambda0)) {
 print("Resonances " + num2str(i) + ":");
 print("  wavelength = " + num2str(lambda0(i)*1e9) + " nm");
 print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
+}
+
+spectrum_file = file_prefix + "_spectrum.dat";
+write(spectrum_file, "Wavelength (nm),Frequency (THz),Spectrum (a.u.)"); 
+for (i=1:length(spectrum_res)) {
+    write(
+        spectrum_file,
+        num2str(lambda(i) * 1e9)
+        + ","
+        + num2str(f_res(i) * 1e-12)
+        + ","
+        + num2str(spectrum_res(i))
+    );
 }
