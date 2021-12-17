@@ -356,6 +356,19 @@ resonance_analysis='
     print("  wavelength = " + num2str(lambda0(i)*1e9) + " nm");
     print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
     }
+
+    spectrum_file = file_prefix + "_spectrum.dat";
+    write(spectrum_file, "Wavelength (nm),Frequency (THz),Spectrum (a.u.)"); 
+    for (i=1:length(spectrum_res)) {
+        write(
+            spectrum_file,
+            num2str(lambda(i) * 1e9)
+            + ","
+            + num2str(f_res(i) * 1e-12)
+            + ","
+            + num2str(spectrum_res(i))
+        );
+    }
 ';
 
 q_setup='
@@ -1018,6 +1031,7 @@ volume_analysis='
 
 #add all variables as userproperties for the model
 adduserprop("random_seed",0,random_seed);
+adduserprop("file_prefix", 1, name);
 adduserprop("gl_center_wavelength",2,gl_center_wavelength);
 adduserprop("gl_wavelength_span",2,gl_wavelength_span);
 adduserprop("x_pos",2,x_pos);
@@ -1285,6 +1299,7 @@ set("Setup Script",'
         adduserprop("origin_y",2,y_pos);
         adduserprop("random_seed",0,random_seed);
         adduserprop("N",0,monitor_number);
+        adduserprop("file_prefix", 1, file_prefix);
 
         set("Setup Script",resonance_setup);
 
