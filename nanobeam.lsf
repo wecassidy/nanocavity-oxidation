@@ -127,7 +127,7 @@ alpha=0.4;   #Visibility of BOX and cladding
 
 
 #Values for the FDTD
-mesh_accuracy = 1;      #Meshaccuracy settings for the FDTD
+mesh_accuracy = 3;      #Meshaccuracy settings for the FDTD
 layer_count = 16;   #Number of PML layers, standard is 8, higher is better but takes longer
 simulation_time = 1.5e-12;
 fdtd_size_x = mirror_distance+2*hole_number*hole_period+hole_radius*2;     #Size of the FDTD-region in x
