@@ -99,7 +99,9 @@ print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
 
     write(
         "nanobeam_resonance.dat",
-        num2str(i)
+        num2str(oxide_thickness * 1e9)
+        + ","
+        + num2str(i)
         + ","
         + num2str(lambda0(i) * 1e9)
         + ","
@@ -107,12 +109,13 @@ print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
     );
 }
 
-spectrum_file = file_prefix + "_spectrum.dat";
-write(spectrum_file, "Wavelength (nm),Frequency (THz),Spectrum (a.u.)"); 
+spectrum_file = "nanbeam_spectrum.dat";
 for (i=1:length(spectrum_res)) {
     write(
         spectrum_file,
-        num2str(lambda(i) * 1e9)
+        num2str(oxide_thickness * 1e9)
+        + ","
+        + num2str(lambda(i) * 1e9)
         + ","
         + num2str(f_res(i) * 1e-12)
         + ","

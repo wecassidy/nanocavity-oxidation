@@ -154,13 +154,15 @@ for(i=1:number_resonances) {
 
     write(
         "h0_q.dat",
-        num2str(i)
+        num2str(oxide_thickness * 1e9)
+        + ","
+        + num2str(i)
         + ","
         + num2str(2 * pi * c / w(p(i)) * 1e9)
         + ","
         + num2str(Q(i))
         + ","
-        + num2str(delta_Q(i)
+        + num2str(delta_Q(i))
     );
 }
 

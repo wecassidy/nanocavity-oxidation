@@ -249,6 +249,7 @@ if(sim_type==1){
         #set("y",y_span_analysis/2);
         set("setup script",q_setup);
         
+        addanalysisprop("oxide_thickness", 2, oxide_thickness);
         addanalysisprop("number resonances",0,number_resonances);
         addanalysisprop("make plots",0,make_plots);
         addanalysisresult("Q");
