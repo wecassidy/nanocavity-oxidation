@@ -13,7 +13,7 @@ clear;
 #####################################################################################
 #Declear variables and there inital values in SI units
 
-oxide_thickness = 10e-9;
+oxide_thickness = 17e-9;
 oxide_length = 10e-6;
 oxide_material = "SiO2 (Glass) - Palik";
 

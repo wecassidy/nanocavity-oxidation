@@ -109,7 +109,7 @@ print("  frequency = " + num2str(f0(i)*1e-12) + " THz");
     );
 }
 
-spectrum_file = "nanbeam_spectrum.dat";
+spectrum_file = "nanobeam_spectrum.dat";
 for (i=1:length(spectrum_res)) {
     write(
         spectrum_file,

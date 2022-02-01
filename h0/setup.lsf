@@ -10,8 +10,8 @@ resonances=matrix(number_resonances,1);
 try{    
     resonances(1)=c/(1552e-9);   
     resonances(2)=0;
-    resonances(3)=0;
-    resonances(4)=0;
+    #resonances(3)=0;
+    #resonances(4)=0;
 }catch(temp);
 
 #add strucutre group to put all geometry objects in

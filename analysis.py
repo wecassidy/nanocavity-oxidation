@@ -17,7 +17,11 @@ p = (
 p.save("nanobeam_resonance.png")
 
 p = (
-    p9.ggplot(spectrum)
+    p9.ggplot(
+        spectrum[spectrum["Oxide thickness (nm)"].isin((0, 15, 20))].query(
+            "`Wavelength (nm)` < 2200"
+        )
+    )
     + p9.aes(
         x="Wavelength (nm)",
         y="Spectrum (a.u.)",
